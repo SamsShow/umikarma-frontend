@@ -1,0 +1,136 @@
+# UmiKarma - AI-Enhanced Reputation System
+# Cursor Rules for Consistent Development
+
+## Project Overview
+UmiKarma is a Sybil-resistant, AI-powered reputation system that aggregates on-chain and off-chain activity into a unified karma score for contributors in decentralized communities.
+
+### Key Features
+- Cross-platform contribution aggregation (GitHub, DAOs, forums)
+- AI-powered impact analysis and summarization
+- Sybil-resistant verification mechanisms
+- DAO integration for governance and task gating
+- Exportable reputation proofs
+- Real-time karma scoring
+
+## Tech Stack & Architecture
+
+### Frontend (Current MVP)
+- **Framework**: React 18 + TypeScript
+- **Styling**: Tailwind CSS v3.4.0
+- **Icons**: Heroicons
+- **Build Tool**: Create React App
+- **Font**: Inter (Google Fonts)
+
+### Future Integration
+- **Smart Contracts**: Move on Umi Network
+- **Backend**: Node.js + Express + GraphQL
+- **AI**: OpenAI GPT-4 for contribution analysis
+- **Database**: MongoDB for reputation logs
+- **Identity**: WalletConnect, GitHub OAuth
+- **Sybil Resistance**: POAP, wallet age, ZK proofs
+
+## Design System & Standards
+
+### Color Palette
+```css
+karma: slate-based grays (#f8fafc to #0f172a)
+primary: blue shades (#f0f9ff to #0c4a6e) 
+accent: green shades (#ecfdf5 to #064e3b)
+```
+
+### Component Classes
+- `.clean-card`: Main card styling with border and hover effects
+- `.feature-card`: Feature showcase cards with hover animations
+- `.btn-primary`: Primary CTA buttons (dark background)
+- `.btn-secondary`: Secondary buttons (light background)
+- `.section-padding`: Consistent section spacing (py-20 lg:py-32)
+- `.container-custom`: Max-width container with responsive padding
+- `.text-gradient`: Gradient text effect for headings
+
+### Typography
+- **Font Family**: Inter for all text
+- **Headings**: font-display class
+- **Body**: font-sans with antialiasing
+- **Code**: font-mono for technical examples
+
+### Design Principles
+- Clean, minimal, professional appearance
+- Consistent spacing and typography
+- Subtle shadows and borders
+- Smooth hover transitions
+- Mobile-first responsive design
+- High contrast for accessibility
+
+## Component Architecture
+
+### Main Components
+1. **WelcomeScreen**: Landing page with features, integrations, stats
+2. **KarmaCard**: User reputation display with score breakdown
+3. **ContributionList**: Activity feed with AI summaries
+4. **App**: Main dashboard with navigation and layout
+
+### Component Standards
+- Use TypeScript interfaces for all props
+- Implement responsive design with Tailwind breakpoints
+- Add hover states and smooth transitions
+- Include loading states for async operations
+- Use semantic HTML structure
+- Follow React best practices (hooks, functional components)
+
+## Data Models
+
+### UserProfile Interface
+```typescript
+interface UserProfile {
+  wallet: string;
+  githubHandle: string;
+  karmaScore: number;         // 0-100
+  trustFactor: number;        // 0-1
+  totalContributions: number;
+  recentActivity: ContributionData[];
+}
+```
+
+### ContributionData Interface
+```typescript
+interface ContributionData {
+  type: 'github' | 'dao' | 'forum';
+  title: string;
+  description: string;
+  impact: number;             // 0-100
+  date: string;
+  aiSummary: string;
+}
+```
+
+## Karma Scoring Algorithm
+```
+Total Karma = (
+  GitHub Contributions × 0.4 +
+  DAO Participation × 0.3 +
+  Forum Activity × 0.2 +
+  Identity Verification × 0.1
+) × Trust Factor × Recency Factor
+```
+
+## Development Guidelines
+
+### Code Style
+- Use TypeScript for all new files
+- Prefer functional components with hooks
+- Use meaningful variable and function names
+- Add JSX comments in curly braces: `{'// comment'}`
+- Implement proper error handling
+- Follow React best practices
+
+### Design Principles
+- Clean, minimal, professional appearance
+- Smooth gradients for modern aesthetics
+- Consistent spacing and typography
+- Subtle shadows and borders
+- Smooth hover transitions
+- Mobile-first responsive design
+- High contrast for accessibility
+
+---
+Project Status: MVP Complete, Ready for Smart Contract Integration 

@@ -1,13 +1,72 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-white text-karma-900 font-sans antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+@layer components {
+  .clean-card {
+    @apply bg-white rounded-xl border border-karma-200 p-8 hover:shadow-soft transition-all duration-300;
+  }
+  
+  .feature-card {
+    @apply bg-white rounded-2xl border border-karma-100 p-8 hover:shadow-medium transition-all duration-300 hover:-translate-y-1;
+  }
+  
+  .btn-primary {
+    @apply bg-karma-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-karma-800 transition-colors duration-200 inline-flex items-center justify-center;
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-karma-700 px-6 py-3 rounded-lg font-medium border border-karma-200 hover:bg-karma-50 transition-colors duration-200 inline-flex items-center justify-center;
+  }
+  
+  .section-padding {
+    @apply py-20 lg:py-32;
+  }
+  
+  .container-custom {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .text-gradient {
+    @apply bg-gradient-to-r from-karma-900 to-karma-600 bg-clip-text text-transparent;
+  }
+  
+  .nav-link {
+    @apply text-karma-600 hover:text-karma-900 font-medium transition-colors duration-200;
+  }
+  
+  .gradient-card {
+    @apply bg-smooth-gradient-1 rounded-2xl border border-karma-100/50 p-8 hover:shadow-medium transition-all duration-500 hover:-translate-y-1 backdrop-blur-sm;
+  }
+  
+  .gradient-card-blue {
+    @apply bg-smooth-gradient-2 rounded-2xl border border-primary-100/50 p-8 hover:shadow-medium transition-all duration-500 hover:-translate-y-1 backdrop-blur-sm;
+  }
+  
+  .gradient-card-green {
+    @apply bg-smooth-gradient-3 rounded-2xl border border-accent-100/50 p-8 hover:shadow-medium transition-all duration-500 hover:-translate-y-1 backdrop-blur-sm;
+  }
+  
+  .gradient-card-yellow {
+    @apply bg-smooth-gradient-4 rounded-2xl border border-yellow-100/50 p-8 hover:shadow-medium transition-all duration-500 hover:-translate-y-1 backdrop-blur-sm;
+  }
+  
+  .gradient-card-pink {
+    @apply bg-smooth-gradient-5 rounded-2xl border border-pink-100/50 p-8 hover:shadow-medium transition-all duration-500 hover:-translate-y-1 backdrop-blur-sm;
+  }
+  
+  .gradient-card-mixed {
+    @apply bg-smooth-gradient-6 rounded-2xl border border-primary-100/50 p-8 hover:shadow-medium transition-all duration-500 hover:-translate-y-1 backdrop-blur-sm;
+  }
 }

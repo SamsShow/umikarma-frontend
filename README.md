@@ -1,46 +1,189 @@
-# Getting Started with Create React App
+# UmiKarma Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+> AI-enhanced reputation for the decentralized world
 
-## Available Scripts
+## 🌟 Overview
 
-In the project directory, you can run:
+UmiKarma is a Sybil-resistant, AI-powered reputation system that aggregates on-chain and off-chain activity into a unified karma score for contributors. This MVP frontend demonstrates the core features of the UmiKarma system.
 
-### `npm start`
+## ✨ Features
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+- **🛡️ Sybil-Resistant Scoring**: Advanced algorithms prevent gaming and ensure authentic reputation
+- **🔗 Multi-Platform Aggregation**: GitHub contributions, DAO participation, and forum activity in one score
+- **🤖 AI-Powered Analysis**: GPT models analyze and summarize contributions intelligently
+- **🏛️ DAO Integration Ready**: Use karma for governance, task gating, and reward allocation
+- **📊 Transparent Metrics**: Clear breakdown of how reputation scores are calculated
+- **⬇️ Exportable Proof**: Generate verifiable reputation certificates
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## 🚀 Quick Start
 
-### `npm test`
+### Prerequisites
+- Node.js (v16 or higher)
+- npm or yarn
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Installation
 
-### `npm run build`
+1. **Clone the repository**
+   ```bash
+   git clone <your-repo-url>
+   cd umikarma-frontend
+   ```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+3. **Start the development server**
+   ```bash
+   npm start
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+4. **Open your browser**
+   Navigate to `http://localhost:3000`
 
-### `npm run eject`
+## 🏗️ Project Structure
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+```
+src/
+├── components/
+│   ├── KarmaCard.tsx          # User reputation display
+│   ├── ContributionList.tsx   # Activity feed with AI summaries
+│   └── WelcomeScreen.tsx      # Landing page
+├── App.tsx                    # Main application component
+├── index.css                  # Tailwind styles
+└── index.tsx                  # React entry point
+```
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## 🎯 Tech Stack
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+- **Frontend**: React 18 + TypeScript
+- **Styling**: Tailwind CSS
+- **Icons**: Heroicons
+- **Build Tool**: Create React App
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+## 🧪 Demo Features (MVP)
 
-## Learn More
+### Core Components
+- **Wallet Connection Simulation**: Mock wallet connectivity
+- **Reputation Dashboard**: View karma score, trust factor, and contributions
+- **AI Summaries**: Simulated AI analysis of GitHub PRs and DAO participation
+- **DAO Access Control**: Examples of reputation-gated features
+- **Export Functionality**: Download reputation proofs as JSON
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Mock Data
+The MVP includes realistic mock data demonstrating:
+- GitHub contribution analysis
+- DAO governance participation
+- Forum discussion impact
+- AI-generated contribution summaries
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## 🔧 Available Scripts
+
+- `npm start` - Start development server
+- `npm build` - Build for production
+- `npm test` - Run tests
+- `npm run eject` - Eject from Create React App
+
+## 🛠️ Development
+
+### Adding New Components
+1. Create component in `src/components/`
+2. Follow TypeScript interface patterns
+3. Use Tailwind CSS classes with `karma-*` custom styles
+4. Import and use in main `App.tsx`
+
+### Customizing Styles
+- Primary colors: `karma-*` palette (defined in `tailwind.config.js`)
+- Custom components: `.karma-card`, `.karma-gradient`, `.karma-text-gradient`
+- Animation classes: `animate-float`, `animate-gradient`
+
+## 🌐 Future Integration
+
+This frontend is designed to integrate with:
+- **Umi Network**: Move smart contracts for reputation storage
+- **GitHub API**: Real contribution data
+- **OpenAI API**: Actual AI summarization
+- **DAO Platforms**: Snapshot, Tally, custom governance contracts
+
+## 📊 Karma Score Calculation
+
+```typescript
+interface KarmaScore {
+  total: number;           // 0-100 overall score
+  trustFactor: number;     // 0-1 identity verification
+  contributions: {
+    github: number;        // Code contributions weight
+    dao: number;          // Governance participation
+    forum: number;        // Community discussions
+  };
+  recency: number;        // Time decay factor
+}
+```
+
+## 🎨 Design System
+
+### Color Palette
+- **Primary**: Blue shades for main UI elements
+- **Karma**: Cyan/blue gradient for reputation elements
+- **Status**: Green (high), Yellow (medium), Red (low)
+
+### Components
+- **Cards**: Consistent `.karma-card` styling
+- **Gradients**: Brand gradient for key elements
+- **Animations**: Subtle hover and loading states
+
+## 🚀 Deployment
+
+### Build for Production
+```bash
+npm run build
+```
+
+### Deploy Options
+- **Vercel**: Automatic deployments from Git
+- **Netlify**: Drag & drop or Git integration
+- **IPFS**: Decentralized hosting
+- **Traditional**: Any static hosting service
+
+## 🔮 Roadmap
+
+### Phase 1 (Current MVP)
+- ✅ React frontend with mock data
+- ✅ Responsive design
+- ✅ Component-based architecture
+
+### Phase 2 (Next Steps)
+- [ ] Real wallet connectivity (WalletConnect)
+- [ ] GitHub API integration
+- [ ] AI summarization backend
+- [ ] Move smart contracts on Umi Network
+
+### Phase 3 (Advanced Features)
+- [ ] ZK proof generation
+- [ ] Social platform integration (Lens, Farcaster)
+- [ ] Dynamic NFT reputation badges
+- [ ] Cross-chain reputation portability
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔗 Links
+
+- **Documentation**: Coming soon
+- **API Reference**: Coming soon
+- **Umi Network**: https://umi.network
+- **Demo**: https://umikarma-demo.vercel.app (coming soon)
+
+---
+
+Built with ❤️ for the decentralized future
