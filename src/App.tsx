@@ -1,13 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { WagmiProvider } from 'wagmi';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { createWeb3Modal } from '@web3modal/wagmi/react';
+import { useAccount } from 'wagmi';
 import { 
   ShieldCheckIcon, 
   SparklesIcon,
   ArrowDownTrayIcon,
-  ArrowLeftOnRectangleIcon
+  ArrowLeftOnRectangleIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline';
 import WelcomeScreen from './components/WelcomeScreen';
 import KarmaCard from './components/KarmaCard';
 import ContributionList from './components/ContributionList';
+import AuthModal from './components/AuthModal';
+import { wagmiConfig } from './config/web3Config';
+import { useAuthStore, AuthUser } from './store/authStore';
+import './App.css';
+
+// Production ready - debug logs removed
+
+// Create QueryClient for React Query
+const queryClient = new QueryClient();
+
+// Create Web3Modal instance - temporarily hardcoded for debugging
+const projectId = 'fb61b9aab141023c1f5f324f6bd6e792';
+
+createWeb3Modal({
+  wagmiConfig,
+  projectId,
+  enableAnalytics: true,
+  enableOnramp: true,
+});
 
 interface ContributionData {
   type: 'github' | 'dao' | 'forum';
@@ -18,110 +42,213 @@ interface ContributionData {
   aiSummary: string;
 }
 
-interface UserProfile {
-  wallet: string;
-  githubHandle: string;
-  karmaScore: number;
-  trustFactor: number;
-  totalContributions: number;
-  recentActivity: ContributionData[];
+// Legacy interface - keeping for backward compatibility
+// interface UserProfile {
+//   wallet: string;
+//   githubHandle: string;
+//   karmaScore: number;
+//   trustFactor: number;
+//   totalContributions: number;
+//   recentActivity: ContributionData[];
+// }
+
+// Error Boundary Component
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Error caught by boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-karma-50 to-primary-50 flex items-center justify-center">
+          <div className="clean-card max-w-md mx-auto text-center">
+            <h2 className="text-xl font-semibold text-red-600 mb-4">
+              Something went wrong
+            </h2>
+            <p className="text-karma-600 mb-4">
+              The application encountered an error. This might be due to network connectivity issues.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="btn-primary"
+            >
+              Reload Application
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
 
-function App() {
-  const [isConnected, setIsConnected] = useState(false);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(false);
+function AppContent() {
+  const { user, isAuthenticated, logout, loading } = useAuthStore();
+  const { isConnected } = useAccount();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(true);
 
-  // Mock user data for MVP demo
-  const mockUserProfile: UserProfile = {
-    wallet: "0x742d35Cc6635C0532925a3b8D93b98D4E5f789E2",
-    githubHandle: "alice-dev",
-    karmaScore: 82,
-    trustFactor: 0.95,
-    totalContributions: 47,
-    recentActivity: [
-      {
-        type: 'github',
-        title: 'Critical bug fix in consensus logic',
-        description: 'Fixed memory leak in validator consensus mechanism',
-        impact: 95,
-        date: '2024-06-20',
-        aiSummary: 'High-impact security fix that prevented potential network instability. Code review showed thorough testing and clear documentation.'
-      },
-      {
-        type: 'dao',
-        title: 'Governance Proposal #42 - Vote Cast',
-        description: 'Voted in favor of treasury allocation proposal',
-        impact: 70,
-        date: '2024-06-19',
-        aiSummary: 'Active participation in governance with alignment to community consensus. Consistent voting pattern shows engagement.'
-      },
-      {
-        type: 'forum',
-        title: 'Technical Discussion: Layer 2 Scaling',
-        description: 'Provided detailed analysis on rollup implementations',
-        impact: 85,
-        date: '2024-06-18',
-        aiSummary: 'Valuable technical contribution with clear explanations and actionable insights. High community engagement.'
-      },
-      {
-        type: 'github',
-        title: 'Feature: Multi-sig wallet integration',
-        description: 'Implemented secure multi-signature wallet support',
-        impact: 88,
-        date: '2024-06-17',
-        aiSummary: 'Significant security enhancement with comprehensive test coverage. Well-documented API changes and migration guide provided.'
-      },
-      {
-        type: 'forum',
-        title: 'Security Audit Discussion',
-        description: 'Led discussion on smart contract security best practices',
-        impact: 92,
-        date: '2024-06-16',
-        aiSummary: 'Expert-level security insights that helped identify potential vulnerabilities. Constructive discussion leadership with actionable recommendations.'
-      }
-    ]
+  // Clean production state management
+
+  // Mock contribution data based on user type
+  const getMockContributions = (user: AuthUser): ContributionData[] => {
+    if (user.type === 'github' && user.githubData) {
+      return [
+        {
+          type: 'github',
+          title: 'Critical bug fix in consensus logic',
+          description: 'Fixed memory leak in validator consensus mechanism',
+          impact: 95,
+          date: '2024-06-20',
+          aiSummary: 'High-impact security fix that prevented potential network instability. Code review showed thorough testing and clear documentation.'
+        },
+        {
+          type: 'github',
+          title: 'Feature: Multi-sig wallet integration',
+          description: 'Implemented secure multi-signature wallet support',
+          impact: 88,
+          date: '2024-06-17',
+          aiSummary: 'Significant security enhancement with comprehensive test coverage. Well-documented API changes and migration guide provided.'
+        },
+        {
+          type: 'dao',
+          title: 'Governance Proposal #42 - Vote Cast',
+          description: 'Voted in favor of treasury allocation proposal',
+          impact: 70,
+          date: '2024-06-19',
+          aiSummary: 'Active participation in governance with alignment to community consensus. Consistent voting pattern shows engagement.'
+        }
+      ];
+    } else {
+      return [
+        {
+          type: 'dao',
+          title: 'Governance Proposal #38 - Vote Cast',
+          description: 'Participated in protocol upgrade voting',
+          impact: 75,
+          date: '2024-06-20',
+          aiSummary: 'Thoughtful participation in critical protocol decisions. Shows understanding of technical implications.'
+        },
+        {
+          type: 'forum',
+          title: 'Technical Discussion: Layer 2 Scaling',
+          description: 'Provided detailed analysis on rollup implementations',
+          impact: 85,
+          date: '2024-06-18',
+          aiSummary: 'Valuable technical contribution with clear explanations and actionable insights. High community engagement.'
+        }
+      ];
+    }
   };
 
-  const connectWallet = async () => {
-    setLoading(true);
-    // Simulate wallet connection and data fetching
-    setTimeout(() => {
-      setIsConnected(true);
-      setUserProfile(mockUserProfile);
-      setLoading(false);
-    }, 2000);
-  };
+  // Stable callback to prevent infinite re-renders
+  const handleConnect = useCallback(() => {
+    console.log('Handle connect called');
+    setShowAuthModal(true);
+  }, []);
+
+  const handleAuthSuccess = useCallback(() => {
+    console.log('Auth success, hiding modal and welcome');
+    setShowAuthModal(false);
+    setShowWelcome(false);
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    console.log('Closing auth modal');
+    setShowAuthModal(false);
+  }, []);
+
+  // Effect to handle authentication state changes
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      setShowWelcome(false);
+      setShowAuthModal(false);
+    } else if (!isConnected) {
+      // Only reset to welcome screen if wallet is disconnected
+      setShowWelcome(true);
+      setShowAuthModal(false);
+    }
+  }, [isAuthenticated, user, isConnected]);
 
   const handleDisconnect = () => {
-    setIsConnected(false);
-    setUserProfile(null);
+    logout();
+    setShowWelcome(true);
   };
 
   const exportKarmaProof = () => {
-    if (!userProfile) return;
+    if (!user) return;
     
     const proofData = {
-      wallet: userProfile.wallet,
-      githubHandle: userProfile.githubHandle,
-      karmaScore: userProfile.karmaScore,
-      trustFactor: userProfile.trustFactor,
-      totalContributions: userProfile.totalContributions,
+      id: user.id,
+      type: user.type,
+      walletAddress: user.walletAddress,
+      githubUsername: user.githubData?.username,
+      karmaScore: user.karmaScore,
+      trustFactor: user.trustFactor,
+      totalContributions: user.totalContributions,
       timestamp: new Date().toISOString(),
-      recentContributions: userProfile.recentActivity.slice(0, 3)
+      recentContributions: getMockContributions(user).slice(0, 3)
     };
 
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(proofData, null, 2));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `umikarma-proof-${userProfile.githubHandle}.json`);
+    downloadAnchorNode.setAttribute("download", `umikarma-proof-${user.id}.json`);
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
   };
 
-  if (!isConnected) {
-    return <WelcomeScreen onConnect={connectWallet} loading={loading} />;
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-karma-50 to-primary-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-karma-600">Connecting...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (showWelcome) {
+    return (
+      <>
+        <WelcomeScreen onConnect={handleConnect} loading={loading} />
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={handleCloseModal}
+          onSuccess={handleAuthSuccess}
+        />
+      </>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
+    return (
+      <>
+        <WelcomeScreen onConnect={handleConnect} loading={loading} />
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={handleCloseModal}
+          onSuccess={handleAuthSuccess}
+        />
+      </>
+    );
   }
 
   return (
@@ -141,6 +268,15 @@ function App() {
             </div>
             
             <div className="flex items-center space-x-4">
+              {/* Add connection button for additional auth methods */}
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="btn-secondary text-sm px-4 py-2 flex items-center space-x-2"
+              >
+                <PlusIcon className="h-4 w-4" />
+                <span>Add Connection</span>
+              </button>
+              
               <button
                 onClick={exportKarmaProof}
                 className="btn-secondary text-sm px-4 py-2"
@@ -148,6 +284,7 @@ function App() {
                 <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
                 Export Proof
               </button>
+              
               <button
                 onClick={handleDisconnect}
                 className="nav-link flex items-center space-x-2"
@@ -170,24 +307,57 @@ function App() {
           <p className="text-karma-600 text-lg">
             Track your contributions and karma score across the decentralized ecosystem
           </p>
+          
+          {/* User Info Banner */}
+          <div className="mt-4 p-4 bg-gradient-to-r from-primary-50 to-accent-50 border border-primary-200 rounded-lg">
+            <div className="flex items-center space-x-3">
+              {user.type === 'github' && user.githubData ? (
+                <>
+                  <img
+                    src={user.githubData.avatar_url}
+                    alt={user.githubData.name}
+                    className="h-10 w-10 rounded-full border-2 border-white"
+                  />
+                  <div>
+                    <p className="font-medium text-karma-900">
+                      Connected as {user.githubData.name}
+                    </p>
+                    <p className="text-sm text-karma-600">
+                      @{user.githubData.username} • GitHub Account
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="h-10 w-10 bg-primary-100 rounded-full flex items-center justify-center">
+                    <ShieldCheckIcon className="h-5 w-5 text-primary-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-karma-900">
+                      Connected Wallet
+                    </p>
+                    <p className="text-sm text-karma-600 font-mono">
+                      {user.walletAddress?.slice(0, 6)}...{user.walletAddress?.slice(-4)}
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* User Profile Card */}
-        {userProfile && (
-          <KarmaCard
-            karmaScore={userProfile.karmaScore}
-            totalContributions={userProfile.totalContributions}
-            trustFactor={userProfile.trustFactor}
-            recentActivities={userProfile.recentActivity.length}
-            githubHandle={userProfile.githubHandle}
-            wallet={userProfile.wallet}
-          />
-        )}
+        <KarmaCard
+          karmaScore={user.karmaScore || 0}
+          totalContributions={user.totalContributions || 0}
+          trustFactor={user.trustFactor || 0}
+          recentActivities={getMockContributions(user).length}
+          githubHandle={user.githubData?.username}
+          wallet={user.walletAddress}
+        />
 
         {/* Recent Activities */}
-        {userProfile && (
-          <ContributionList contributions={userProfile.recentActivity} />
-        )}
+        <ContributionList contributions={getMockContributions(user)} />
 
         {/* Integration Examples Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
@@ -206,7 +376,7 @@ function App() {
                   </div>
                 </div>
                 <p className="text-accent-700 text-sm">
-                  Minimum required: 70/100 • Your score: {userProfile?.karmaScore}/100
+                  Minimum required: 70/100 • Your score: {user.karmaScore || 0}/100
                 </p>
               </div>
               
@@ -221,7 +391,7 @@ function App() {
                   </div>
                 </div>
                 <p className="text-accent-700 text-sm">
-                  Minimum required: 80/100 • Your score: {userProfile?.karmaScore}/100
+                  Minimum required: 80/100 • Your score: {user.karmaScore || 0}/100
                 </p>
               </div>
               
@@ -236,7 +406,7 @@ function App() {
                   </div>
                 </div>
                 <p className="text-yellow-700 text-sm">
-                  Minimum required: 90/100 • Your score: {userProfile?.karmaScore}/100
+                  Minimum required: 90/100 • Your score: {user.karmaScore || 0}/100
                 </p>
               </div>
             </div>
@@ -251,7 +421,7 @@ function App() {
                  <div className="text-accent-400">{'// Verify user reputation'}</div>
                  <div className="text-white">
                    <div>const karma = await umiKarma</div>
-                   <div>&nbsp;&nbsp;.getUser('{userProfile?.wallet.slice(0, 8)}...')</div>
+                   <div>&nbsp;&nbsp;.getUser('{user.walletAddress?.slice(0, 8) || user.id.slice(0, 8)}...')</div>
                    <div>&nbsp;&nbsp;.getScore();</div>
                    <div><br /></div>
                    <div>if (karma &gt;= 70) {'{'}</div>
@@ -301,7 +471,26 @@ function App() {
           </div>
         </div>
       </main>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={handleCloseModal}
+        onSuccess={handleAuthSuccess}
+      />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <WagmiProvider config={wagmiConfig}>
+          <AppContent />
+        </WagmiProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

@@ -141,14 +141,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onConnect, loading }) => 
                 disabled={loading}
                 className="btn-primary"
               >
-                {loading ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                    <span>Connecting...</span>
-                  </div>
-                ) : (
-                  'Get Started'
-                )}
+                Connect to Get Started
               </button>
             </div>
           </div>
@@ -181,17 +174,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onConnect, loading }) => 
                 disabled={loading}
                 className="btn-primary text-lg px-8 py-4"
               >
-                {loading ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                    <span>Connecting...</span>
-                  </div>
-                ) : (
-                  <>
-                    Start Building Reputation
-                    <ArrowRightIcon className="ml-2 h-5 w-5" />
-                  </>
-                )}
+                Start Building Reputation
+                <ArrowRightIcon className="ml-2 h-5 w-5" />
               </button>
               <button className="btn-secondary text-lg px-8 py-4">
                 <PlayIcon className="mr-2 h-5 w-5" />

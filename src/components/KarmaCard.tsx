@@ -6,8 +6,8 @@ interface KarmaCardProps {
   totalContributions: number;
   trustFactor: number;
   recentActivities: number;
-  githubHandle: string;
-  wallet: string;
+  githubHandle?: string;
+  wallet?: string;
 }
 
 const KarmaCard: React.FC<KarmaCardProps> = ({
@@ -38,8 +38,12 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
             <UserIcon className="h-10 w-10 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-karma-900 mb-1">@{githubHandle}</h2>
-            <p className="text-karma-600 font-mono text-sm">{wallet.slice(0, 6)}...{wallet.slice(-4)}</p>
+            <h2 className="text-2xl font-bold text-karma-900 mb-1">
+              {githubHandle ? `@${githubHandle}` : 'Anonymous User'}
+            </h2>
+            <p className="text-karma-600 font-mono text-sm">
+              {wallet ? `${wallet.slice(0, 6)}...${wallet.slice(-4)}` : 'No wallet connected'}
+            </p>
             <div className="flex items-center space-x-2 mt-2">
               <div className="h-2 w-2 bg-accent-500 rounded-full"></div>
               <span className="text-sm text-karma-600">Connected & Verified</span>
