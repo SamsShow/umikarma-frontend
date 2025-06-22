@@ -78,7 +78,7 @@ const NetworkSwitcher: React.FC = () => {
           chainName: umiDevnet.name,
           nativeCurrency: umiDevnet.nativeCurrency,
           rpcUrls: umiDevnet.rpcUrls.default.http,
-          blockExplorerUrls: [umiDevnet.blockExplorers.default.url],
+          blockExplorerUrls: umiDevnet.blockExplorers?.default ? [umiDevnet.blockExplorers.default.url] : [],
         }],
       });
     } catch (error) {

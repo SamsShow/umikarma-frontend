@@ -1,11 +1,11 @@
 import { http, webSocket } from 'wagmi';
 import { createConfig } from 'wagmi';
-import { defineChain } from 'viem';
+import { Chain } from 'viem';
 import { metaMask, coinbaseWallet, injected } from 'wagmi/connectors';
 import { polygonAmoy } from 'wagmi/chains';
 
 // Define Umi Network Devnet based on official documentation
-export const umiDevnet = defineChain({
+export const umiDevnet = {
   id: 42069,
   name: 'Umi Devnet',
   nativeCurrency: {
@@ -25,7 +25,7 @@ export const umiDevnet = defineChain({
     },
   },
   testnet: true,
-});
+} as const satisfies Chain;
 
 // Note: WalletConnect is handled by Web3Modal, not directly in wagmi config
 
