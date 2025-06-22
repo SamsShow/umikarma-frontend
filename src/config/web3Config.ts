@@ -1,8 +1,11 @@
-import { http, webSocket } from 'wagmi';
-import { createConfig } from 'wagmi';
+import { createConfig, configureChains } from 'wagmi';
 import { Chain } from 'viem';
-import { metaMask, coinbaseWallet, injected } from 'wagmi/connectors';
+import { MetaMaskConnector } from 'wagmi/connectors/metaMask';
+import { CoinbaseWalletConnector } from 'wagmi/connectors/coinbaseWallet';
+import { InjectedConnector } from 'wagmi/connectors/injected';
 import { polygonAmoy } from 'wagmi/chains';
+import { publicProvider } from 'wagmi/providers/public';
+import { jsonRpcProvider } from 'wagmi/providers/jsonRpc';
 
 // Define Umi Network Devnet based on official documentation
 export const umiDevnet = {
@@ -27,32 +30,43 @@ export const umiDevnet = {
   testnet: true,
 } as const satisfies Chain;
 
-// Note: WalletConnect is handled by Web3Modal, not directly in wagmi config
-
-export const wagmiConfig = createConfig({
-  chains: [umiDevnet, polygonAmoy] as const,
-  connectors: [
-    metaMask(),
-    coinbaseWallet({
-      appName: 'UmiKarma',
-      appLogoUrl: 'http://localhost:3000/logo192.png',
-    }),
-    injected(),
-  ],
-  transports: {
-    [umiDevnet.id]: http('https://devnet.moved.network', {
-      timeout: 20_000, // Increased timeout to 20 seconds
-      retryCount: 1, // Allow 1 retry to handle intermittent issues
-      retryDelay: 3_000, // 3 second delay between retries
-      fetchOptions: {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+// Configure chains with providers
+const { chains, publicClient, webSocketPublicClient } = configureChains(
+  [umiDevnet, polygonAmoy],
+  [
+    jsonRpcProvider({
+      rpc: (chain) => {
+        if (chain.id === umiDevnet.id) {
+          return {
+            http: 'https://devnet.moved.network',
+          };
+        }
+        return null;
       },
     }),
-    [polygonAmoy.id]: http(), // Uses default RPC with default retry settings
-  },
+    publicProvider(),
+  ]
+);
+
+// Note: WalletConnect is handled by Web3Modal, not directly in wagmi config
+export const wagmiConfig = createConfig({
+  autoConnect: true,
+  connectors: [
+    new MetaMaskConnector({ chains }),
+    new CoinbaseWalletConnector({
+      chains,
+      options: {
+        appName: 'UmiKarma',
+        appLogoUrl: 'http://localhost:3000/logo192.png',
+      },
+    }),
+    new InjectedConnector({ chains }),
+  ],
+  publicClient,
+     webSocketPublicClient,
 });
+
+export { chains };
 
 export const supportedChains = [
   {
