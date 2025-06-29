@@ -13,7 +13,8 @@ import {
   StarIcon,
   UserGroupIcon,
   CalendarIcon,
-  LinkIcon
+  LinkIcon,
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline';
 import { 
   githubApiService, 
@@ -22,6 +23,7 @@ import {
   GitHubAnalysisStatus,
   ContributionActivity 
 } from '../services/githubApiService';
+import { useAuthStore } from '../store/authStore';
 
 interface GitHubAnalysisDashboardProps {
   initialUsername?: string;
@@ -30,6 +32,7 @@ interface GitHubAnalysisDashboardProps {
 export const GitHubAnalysisDashboard: React.FC<GitHubAnalysisDashboardProps> = ({ 
   initialUsername = '' 
 }) => {
+  const { user } = useAuthStore();
   const [username, setUsername] = useState(initialUsername);
   const [searchQuery, setSearchQuery] = useState(initialUsername);
   const [isSearching, setIsSearching] = useState(false);
@@ -44,6 +47,10 @@ export const GitHubAnalysisDashboard: React.FC<GitHubAnalysisDashboardProps> = (
   // UI states
   const [error, setError] = useState<string | null>(null);
   const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  
+  // Check if we're viewing the current user's profile
+  const isCurrentUser = username && user?.githubData?.username === username;
+  const currentUserGithubUsername = user?.githubData?.username;
 
   // Check backend health on mount
   useEffect(() => {
@@ -111,6 +118,13 @@ export const GitHubAnalysisDashboard: React.FC<GitHubAnalysisDashboardProps> = (
             pollAnalysisStatus(user);
           }
         }
+      }
+      
+      // For current user, automatically suggest starting deep analysis if no complete profile
+      const currentUserUsername = currentUserGithubUsername;
+      if (user === currentUserUsername && !data.profile && data.summary && backendStatus === 'online') {
+        // Auto-suggest analysis for current user
+        console.log('Suggesting deep analysis for current user');
       }
     } catch (err) {
       setError('Failed to load user data');
@@ -186,11 +200,22 @@ export const GitHubAnalysisDashboard: React.FC<GitHubAnalysisDashboardProps> = (
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-slate-900 mb-4">
-            GitHub Karma Analysis
+            {isCurrentUser ? 'Your GitHub Karma Analysis' : 'GitHub Karma Analysis'}
           </h1>
           <p className="text-xl text-slate-600 max-w-3xl mx-auto">
-            Get comprehensive reputation analysis of any GitHub user with AI-powered insights
+            {isCurrentUser 
+              ? 'Comprehensive analysis of your GitHub contributions and reputation score'
+              : 'Get comprehensive reputation analysis of any GitHub user with AI-powered insights'
+            }
           </p>
+          
+          {/* Current User Badge */}
+          {isCurrentUser && user?.githubData && (
+            <div className="mt-6 inline-flex items-center px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+              <ShieldCheckIcon className="h-4 w-4 mr-2" />
+              Viewing your profile: @{user.githubData.username}
+            </div>
+          )}
         </div>
 
         {/* Backend Status */}
@@ -213,11 +238,68 @@ export const GitHubAnalysisDashboard: React.FC<GitHubAnalysisDashboardProps> = (
           </div>
         </div>
 
+        {/* Current User Quick Actions */}
+        {currentUserGithubUsername && !isCurrentUser && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                Want to analyze your own GitHub profile?
+              </h3>
+              <p className="text-blue-700 mb-4">
+                Switch to your profile (@{currentUserGithubUsername}) for personalized insights.
+              </p>
+              <button
+                onClick={() => {
+                  setUsername(currentUserGithubUsername);
+                  setSearchQuery(currentUserGithubUsername);
+                }}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                View My Profile
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Search Section */}
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
           <div className="max-w-2xl mx-auto">
+            {/* Mode Toggle */}
+            {currentUserGithubUsername && (
+              <div className="flex justify-center mb-6">
+                <div className="bg-slate-100 p-1 rounded-lg inline-flex">
+                  <button
+                    onClick={() => {
+                      setUsername(currentUserGithubUsername);
+                      setSearchQuery(currentUserGithubUsername);
+                    }}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                      isCurrentUser
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    My Profile
+                  </button>
+                  <button
+                    onClick={() => {
+                      setUsername('');
+                      setSearchQuery('');
+                    }}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                      !isCurrentUser
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Search Others
+                  </button>
+                </div>
+              </div>
+            )}
+            
             <label htmlFor="username" className="block text-sm font-medium text-slate-700 mb-2">
-              GitHub Username
+              {isCurrentUser ? 'Your GitHub Username' : 'GitHub Username'}
             </label>
             <div className="flex gap-4">
               <div className="flex-1 relative">
@@ -228,7 +310,7 @@ export const GitHubAnalysisDashboard: React.FC<GitHubAnalysisDashboardProps> = (
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="Enter GitHub username (e.g., octocat)"
+                  placeholder={isCurrentUser ? `Your username: ${username}` : "Enter GitHub username (e.g., octocat)"}
                   className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   disabled={isSearching}
                 />
@@ -282,14 +364,21 @@ export const GitHubAnalysisDashboard: React.FC<GitHubAnalysisDashboardProps> = (
                 <button
                   onClick={startDeepAnalysis}
                   disabled={isAnalyzing}
-                  className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50"
+                  className={`inline-flex items-center px-4 py-2 text-white rounded-lg focus:ring-2 focus:ring-offset-2 disabled:opacity-50 ${
+                    isCurrentUser 
+                      ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+                      : 'bg-purple-600 hover:bg-purple-700 focus:ring-purple-500'
+                  }`}
                 >
                   {isAnalyzing ? (
                     <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" />
                   ) : (
                     <ChartBarIcon className="h-5 w-5 mr-2" />
                   )}
-                  {isAnalyzing ? 'Starting...' : 'Deep Analysis'}
+                  {isAnalyzing 
+                    ? (isCurrentUser ? 'Analyzing Your Profile...' : 'Starting Analysis...') 
+                    : (isCurrentUser ? 'Analyze My Profile' : 'Deep Analysis')
+                  }
                 </button>
               )}
             </div>
@@ -397,7 +486,16 @@ export const GitHubAnalysisDashboard: React.FC<GitHubAnalysisDashboardProps> = (
         {/* Detailed Profile */}
         {profile && (
           <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-            <h3 className="text-xl font-semibold text-slate-900 mb-6">Detailed Profile Analysis</h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-slate-900">
+                {isCurrentUser ? 'Your Detailed Profile Analysis' : 'Detailed Profile Analysis'}
+              </h3>
+              {isCurrentUser && (
+                <div className="text-sm text-slate-600">
+                  Last analyzed: {new Date(profile.lastAnalyzed).toLocaleDateString()}
+                </div>
+              )}
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <div className="text-center p-4 bg-slate-50 rounded-lg">
@@ -478,7 +576,9 @@ export const GitHubAnalysisDashboard: React.FC<GitHubAnalysisDashboardProps> = (
         {/* Recent Activities */}
         {activities.length > 0 && (
           <div className="bg-white rounded-2xl shadow-xl p-8">
-            <h3 className="text-xl font-semibold text-slate-900 mb-6">Recent Contributions</h3>
+            <h3 className="text-xl font-semibold text-slate-900 mb-6">
+              {isCurrentUser ? 'Your Recent Contributions' : 'Recent Contributions'}
+            </h3>
             <div className="space-y-4">
               {activities.slice(0, 10).map((activity, index) => (
                 <div key={index} className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors">
@@ -537,8 +637,23 @@ export const GitHubAnalysisDashboard: React.FC<GitHubAnalysisDashboardProps> = (
         {!summary && !isSearching && username && (
           <div className="text-center py-12">
             <UserIcon className="h-16 w-16 mx-auto text-slate-400 mb-4" />
-            <h3 className="text-lg font-medium text-slate-900 mb-2">No data found</h3>
-            <p className="text-slate-600">Try searching for a different GitHub user.</p>
+            <h3 className="text-lg font-medium text-slate-900 mb-2">
+              {isCurrentUser ? 'Ready to analyze your GitHub profile!' : 'No data found'}
+            </h3>
+            <p className="text-slate-600">
+              {isCurrentUser 
+                ? 'Click the search button above to start analyzing your contributions and build your karma score.'
+                : 'Try searching for a different GitHub user.'
+              }
+            </p>
+            {isCurrentUser && backendStatus === 'online' && (
+              <button
+                onClick={handleSearch}
+                className="mt-4 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                Analyze My Profile
+              </button>
+            )}
           </div>
         )}
       </div>

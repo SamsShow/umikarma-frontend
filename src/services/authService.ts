@@ -30,16 +30,14 @@ export class AuthService {
       // Clear stored state
       localStorage.removeItem('github_oauth_state');
       
-      // Exchange code for access token
-      const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
+      // Exchange code for access token via our backend (secure)
+      const tokenResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/auth/github/token`, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          client_id: GITHUB_CLIENT_ID,
-          client_secret: process.env.REACT_APP_GITHUB_CLIENT_SECRET,
           code,
           redirect_uri: GITHUB_REDIRECT_URI,
         }),
@@ -47,8 +45,8 @@ export class AuthService {
       
       const tokenData = await tokenResponse.json();
       
-      if (tokenData.error) {
-        throw new Error(tokenData.error_description || 'Failed to get access token');
+      if (!tokenResponse.ok || tokenData.error) {
+        throw new Error(tokenData.error || 'Failed to get access token');
       }
       
       // Get user data from GitHub API

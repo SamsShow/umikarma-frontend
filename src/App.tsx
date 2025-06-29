@@ -16,6 +16,7 @@ import ContributionList from './components/ContributionList';
 import AuthModal from './components/AuthModal';
 import { GitHubAnalysisDashboard } from './components/GitHubAnalysisDashboard';
 import BackendStatus from './components/BackendStatus';
+import SplashCursor from './components/SplashCursor';
 import { wagmiConfig } from './config/web3Config';
 import { useAuthStore, AuthUser } from './store/authStore';
 import './App.css';
@@ -231,6 +232,7 @@ function AppContent() {
   if (showWelcome) {
     return (
       <>
+        <SplashCursor />
         <WelcomeScreen onConnect={handleConnect} loading={loading} />
         <AuthModal
           isOpen={showAuthModal}
@@ -244,6 +246,7 @@ function AppContent() {
   if (!isAuthenticated || !user) {
     return (
       <>
+        <SplashCursor />
         <WelcomeScreen onConnect={handleConnect} loading={loading} />
         <AuthModal
           isOpen={showAuthModal}
