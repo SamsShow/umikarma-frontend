@@ -63,6 +63,8 @@ export const supportedChains = [
     rpcUrl: 'https://devnet.moved.network',
     faucetUrl: 'https://faucet.umi.network', // Based on documentation
     status: 'primary', // Primary choice
+    corsIssues: true, // Known CORS restrictions from browsers
+    walletBypass: true, // Modern wallets bypass CORS
   },
   {
     id: polygonAmoy.id,
@@ -72,5 +74,35 @@ export const supportedChains = [
     rpcUrl: 'https://rpc-amoy.polygon.technology',
     faucetUrl: 'https://faucet.polygon.technology',
     status: 'fallback', // Fallback option
+    corsIssues: false,
+    walletBypass: false,
   },
-]; 
+];
+
+// Network status detection helper
+export const detectNetworkStatus = async (chainId: number): Promise<'online' | 'cors-issue' | 'offline'> => {
+  const chain = supportedChains.find(c => c.id === chainId);
+  if (!chain) return 'offline';
+
+  try {
+    // Try a simple fetch to detect CORS vs offline
+    const response = await fetch(chain.rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        method: 'eth_chainId',
+        params: [],
+        id: 1,
+        jsonrpc: '2.0'
+      })
+    });
+    
+    return response.ok ? 'online' : 'offline';
+  } catch (error) {
+    // Check if it's a CORS error specifically
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      return chain.corsIssues ? 'cors-issue' : 'offline';
+    }
+    return 'offline';
+  }
+}; 

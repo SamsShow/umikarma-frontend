@@ -14,6 +14,8 @@ import WelcomeScreen from './components/WelcomeScreen';
 import KarmaCard from './components/KarmaCard';
 import ContributionList from './components/ContributionList';
 import AuthModal from './components/AuthModal';
+import { GitHubAnalysisDashboard } from './components/GitHubAnalysisDashboard';
+import BackendStatus from './components/BackendStatus';
 import { wagmiConfig } from './config/web3Config';
 import { useAuthStore, AuthUser } from './store/authStore';
 import './App.css';
@@ -101,6 +103,7 @@ function AppContent() {
   const { isConnected } = useAccount();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'github-analysis'>('dashboard');
 
   // Clean production state management
 
@@ -257,14 +260,37 @@ function AppContent() {
       <nav className="border-b border-karma-100 bg-white">
         <div className="container-custom">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3">
-              <div className="h-8 w-8 bg-karma-900 rounded-lg flex items-center justify-center">
-                <SparklesIcon className="h-5 w-5 text-white" />
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-3">
+                <div className="h-8 w-8 bg-karma-900 rounded-lg flex items-center justify-center">
+                  <SparklesIcon className="h-5 w-5 text-white" />
+                </div>
+                <span className="font-bold text-xl text-karma-900">UmiKarma</span>
               </div>
-              <span className="font-bold text-xl text-karma-900">UmiKarma</span>
-              <span className="text-xs bg-karma-100 text-karma-700 px-2 py-1 rounded-full font-medium">
-                Dashboard
-              </span>
+              
+              {/* Navigation Tabs */}
+              <div className="flex space-x-1 bg-karma-100 p-1 rounded-lg">
+                <button
+                  onClick={() => setCurrentView('dashboard')}
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    currentView === 'dashboard'
+                      ? 'bg-white text-karma-900 shadow-sm'
+                      : 'text-karma-600 hover:text-karma-900'
+                  }`}
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => setCurrentView('github-analysis')}
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    currentView === 'github-analysis'
+                      ? 'bg-white text-karma-900 shadow-sm'
+                      : 'text-karma-600 hover:text-karma-900'
+                  }`}
+                >
+                  GitHub Analysis
+                </button>
+              </div>
             </div>
             
             <div className="flex items-center space-x-4">
@@ -298,15 +324,20 @@ function AppContent() {
       </nav>
 
       {/* Main Content */}
-      <main className="container-custom py-8">
-        {/* Header Section */}
-        <div className="mb-8">
-          <h1 className="text-3xl lg:text-4xl font-bold text-karma-900 mb-2">
-            Your Reputation Dashboard
-          </h1>
-          <p className="text-karma-600 text-lg">
-            Track your contributions and karma score across the decentralized ecosystem
-          </p>
+      {currentView === 'github-analysis' ? (
+        <GitHubAnalysisDashboard 
+          initialUsername={user.githubData?.username}
+        />
+      ) : (
+        <main className="container-custom py-8">
+          {/* Header Section */}
+          <div className="mb-8">
+            <h1 className="text-3xl lg:text-4xl font-bold text-karma-900 mb-2">
+              Your Reputation Dashboard
+            </h1>
+            <p className="text-karma-600 text-lg">
+              Track your contributions and karma score across the decentralized ecosystem
+            </p>
           
           {/* User Info Banner */}
           <div className="mt-4 p-4 bg-gradient-to-r from-primary-50 to-accent-50 border border-primary-200 rounded-lg">
@@ -346,6 +377,11 @@ function AppContent() {
           </div>
         </div>
 
+        {/* Backend Status */}
+        <div className="mb-6">
+          <BackendStatus />
+        </div>
+
         {/* User Profile Card */}
         <KarmaCard
           karmaScore={user.karmaScore || 0}
@@ -354,10 +390,15 @@ function AppContent() {
           recentActivities={getMockContributions(user).length}
           githubHandle={user.githubData?.username}
           wallet={user.walletAddress}
+          showRealTimeData={true}
         />
 
         {/* Recent Activities */}
-        <ContributionList contributions={getMockContributions(user)} />
+        <ContributionList 
+          contributions={getMockContributions(user)} 
+          githubUsername={user.githubData?.username}
+          showRealTimeData={true}
+        />
 
         {/* Integration Examples Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
@@ -471,6 +512,7 @@ function AppContent() {
           </div>
         </div>
       </main>
+      )}
 
       {/* Auth Modal */}
       <AuthModal

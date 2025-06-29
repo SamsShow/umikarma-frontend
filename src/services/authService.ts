@@ -1,4 +1,5 @@
 import { AuthUser } from '../store/authStore';
+import { githubApiService, GitHubUserSummary } from './githubApiService';
 
 // GitHub OAuth configuration
 const GITHUB_CLIENT_ID = process.env.REACT_APP_GITHUB_CLIENT_ID || 'your-github-client-id';
@@ -64,7 +65,18 @@ export class AuthService {
         throw new Error('Failed to fetch user data');
       }
       
-      // Create AuthUser object
+      // Get real karma data from our backend
+      let karmaData: GitHubUserSummary | null = null;
+      try {
+        const summaryResult = await githubApiService.getUserSummary(userData.login);
+        if (summaryResult.success && summaryResult.data) {
+          karmaData = summaryResult.data;
+        }
+      } catch (error) {
+        console.warn('Failed to get karma data from backend, using basic GitHub data:', error);
+      }
+
+      // Create AuthUser object with real karma data
       const authUser: AuthUser = {
         id: `github_${userData.id}`,
         type: 'github',
@@ -77,10 +89,12 @@ export class AuthService {
           followers: userData.followers,
           following: userData.following,
         },
-        // Mock initial karma data - in production, this would come from your backend
-        karmaScore: 75,
-        trustFactor: 0.85,
-        totalContributions: userData.public_repos + 10,
+        // Use real karma data from backend, fall back to basic calculation
+        karmaScore: karmaData?.karmaScore || Math.min(userData.public_repos * 2 + userData.followers * 0.1, 100),
+        trustFactor: karmaData?.trustFactor || 0.5 + (userData.public_repos * 0.01),
+        totalContributions: karmaData?.totalContributions ? 
+          (karmaData.totalContributions.commits + karmaData.totalContributions.pullRequests + karmaData.totalContributions.issues) : 
+          userData.public_repos + 10,
       };
       
       return authUser;
@@ -103,37 +117,55 @@ export class AuthService {
     };
   }
 
-  // Fetch user profile data (mock for now)
+  // Fetch user profile data from backend
   static async fetchUserProfile(userId: string): Promise<Partial<AuthUser> | null> {
     try {
-      // In production, this would be an API call to your backend
-      // For now, return mock data based on user type
-      
-      const mockProfiles = {
-        github_user: {
-          karmaScore: 88,
-          trustFactor: 0.92,
-          totalContributions: 156,
-        },
-        wallet_user: {
-          karmaScore: 72,
-          trustFactor: 0.68,
-          totalContributions: 43,
-        },
-      };
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       if (userId.startsWith('github_')) {
-        return mockProfiles.github_user;
+        // Extract GitHub username from stored AuthUser ID
+        const storedUser = this.getStoredUser();
+        if (storedUser?.githubData?.username) {
+          const summaryResult = await githubApiService.getUserSummary(storedUser.githubData.username);
+          
+          if (summaryResult.success && summaryResult.data) {
+            const karmaData = summaryResult.data;
+            return {
+              karmaScore: karmaData.karmaScore,
+              trustFactor: karmaData.trustFactor,
+              totalContributions: karmaData.totalContributions.commits + 
+                                karmaData.totalContributions.pullRequests + 
+                                karmaData.totalContributions.issues,
+            };
+          }
+        }
+        
+        // Fallback to mock data for GitHub users if backend fails
+        return {
+          karmaScore: 75,
+          trustFactor: 0.8,
+          totalContributions: 50,
+        };
       } else if (userId.startsWith('wallet_')) {
-        return mockProfiles.wallet_user;
+        // For wallet users, return basic mock data (no GitHub analysis)
+        return {
+          karmaScore: 65,
+          trustFactor: 0.7,
+          totalContributions: 25,
+        };
       }
       
       return null;
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
+      return null;
+    }
+  }
+
+  // Helper to get stored user data
+  private static getStoredUser(): AuthUser | null {
+    try {
+      const stored = localStorage.getItem('umikarma_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
       return null;
     }
   }
