@@ -15,6 +15,7 @@ import KarmaCard from './components/KarmaCard';
 import ContributionList from './components/ContributionList';
 import AuthModal from './components/AuthModal';
 import { GitHubAnalysisDashboard } from './components/GitHubAnalysisDashboard';
+import { GitHubStatsCard } from './components/GitHubStatsCard';
 import BackendStatus from './components/BackendStatus';
 import SplashCursor from './components/SplashCursor';
 import { wagmiConfig } from './config/web3Config';
@@ -285,6 +286,7 @@ function AppContent() {
                 </button>
                 <button
                   onClick={() => setCurrentView('github-analysis')}
+                  data-tab="github-analysis"
                   className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                     currentView === 'github-analysis'
                       ? 'bg-white text-karma-900 shadow-sm'
@@ -384,6 +386,69 @@ function AppContent() {
         <div className="mb-6">
           <BackendStatus />
         </div>
+
+        {/* GitHub Stats Card - Prominent display for GitHub users */}
+        {user.type === 'github' ? (
+          user.githubData ? (
+            <GitHubStatsCard
+              githubUsername={user.githubData.username}
+              showRealTimeData={true}
+            />
+          ) : (
+            <div className="clean-card mb-8">
+              <div className="text-center py-8">
+                <h3 className="text-lg font-medium text-slate-900 mb-2">GitHub Data Loading...</h3>
+                <p className="text-slate-600">Your GitHub profile is connected but data is still loading.</p>
+                <div className="mt-4 text-sm text-slate-500 space-y-1">
+                  <div>User type: {user.type}</div>
+                  <div>GitHub data: Missing or incomplete</div>
+                  <div>User ID: {user.id}</div>
+                  <div className="text-orange-600">⚠️ GitHub connection needs to be reset</div>
+                </div>
+                <div className="mt-4 space-x-3">
+                  <button
+                    onClick={() => {
+                      console.log('Current user state:', user);
+                      console.log('LocalStorage auth:', localStorage.getItem('umikarma-auth'));
+                      console.log('OAuth state:', localStorage.getItem('github_oauth_state'));
+                    }}
+                    className="bg-gray-600 text-white px-4 py-2 rounded text-sm"
+                  >
+                    Debug Auth State
+                  </button>
+                  <button
+                    onClick={() => {
+                      // Clear OAuth state and try again
+                      localStorage.removeItem('github_oauth_state');
+                      localStorage.removeItem('umikarma-auth');
+                      logout();
+                      setTimeout(() => setShowAuthModal(true), 100);
+                    }}
+                    className="bg-red-600 text-white px-4 py-2 rounded text-sm"
+                  >
+                    Reset & Reconnect
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        ) : (
+          <div className="clean-card mb-8">
+            <div className="text-center py-8">
+              <h3 className="text-lg font-medium text-slate-900 mb-2">Connect GitHub for Analytics</h3>
+              <p className="text-slate-600">Connect your GitHub account to see detailed contribution analytics.</p>
+              <div className="mt-4 text-sm text-slate-500">
+                Current authentication: {user.type || 'Not authenticated'}
+              </div>
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium"
+              >
+                Connect GitHub
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* User Profile Card */}
         <KarmaCard

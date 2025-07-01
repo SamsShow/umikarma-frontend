@@ -23,6 +23,7 @@ const SocialLogin: React.FC<SocialLoginProps> = ({ onSuccess, onError }) => {
       const { isCallback, code, state } = AuthService.isGitHubCallback();
       
       if (isCallback && code && state) {
+        console.log('🎯 OAuth callback detected in component');
         setLoading(true);
         setError(null);
         
@@ -30,16 +31,19 @@ const SocialLogin: React.FC<SocialLoginProps> = ({ onSuccess, onError }) => {
           const authUser = await AuthService.handleGitHubCallback(code, state);
           
           if (authUser) {
+            console.log('🎉 OAuth authentication successful, setting user');
             setUser(authUser);
             onSuccess?.();
             
             // Clean up URL
             window.history.replaceState({}, document.title, window.location.pathname);
           } else {
-            throw new Error('Failed to authenticate with GitHub');
+            console.warn('⚠️ OAuth callback returned null (likely duplicate processing)');
+            // Don't throw an error if null - this might be a duplicate call that was filtered out
           }
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : 'Authentication failed';
+          console.error('💥 OAuth callback error:', errorMessage);
           setError(errorMessage);
           onError?.(errorMessage);
         } finally {
@@ -49,7 +53,9 @@ const SocialLogin: React.FC<SocialLoginProps> = ({ onSuccess, onError }) => {
     };
 
     handleCallback();
-  }, [setUser, setLoading, onSuccess, onError]);
+    // Only run once on mount to avoid duplicate processing
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleGitHubLogin = () => {
     if (loading) return;

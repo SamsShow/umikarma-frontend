@@ -21,13 +21,30 @@ export class AuthService {
 
   static async handleGitHubCallback(code: string, state: string): Promise<AuthUser | null> {
     try {
-      // Verify state
-      const storedState = localStorage.getItem('github_oauth_state');
-      if (state !== storedState) {
-        throw new Error('Invalid state parameter');
+      console.log('🔄 Starting GitHub OAuth callback handling...', { code: code.substring(0, 10) + '...', state });
+
+      // Check if we're already processing this code to prevent React StrictMode double execution
+      const processingKey = `github_oauth_processing_${code}`;
+      if (localStorage.getItem(processingKey)) {
+        console.log('⚠️ OAuth already being processed, skipping duplicate');
+        return null;
       }
       
-      // Clear stored state
+      // Mark as processing immediately
+      localStorage.setItem(processingKey, 'true');
+      
+      // Verify state
+      const storedState = localStorage.getItem('github_oauth_state');
+      console.log('🔐 OAuth State Verification:', { received: state, stored: storedState });
+      
+      if (state !== storedState) {
+        console.error('❌ State mismatch - clearing all OAuth state');
+        localStorage.removeItem('github_oauth_state');
+        localStorage.removeItem(processingKey); // Clean up processing flag
+        throw new Error('Invalid state parameter - please try connecting again');
+      }
+      
+      // Clear stored state immediately to prevent reuse
       localStorage.removeItem('github_oauth_state');
       
       // Exchange code for access token via our backend (secure)
@@ -95,9 +112,21 @@ export class AuthService {
           userData.public_repos + 10,
       };
       
+      // Clear processing flag on success
+      localStorage.removeItem(processingKey);
+      
+      console.log('✅ GitHub OAuth callback completed successfully');
       return authUser;
     } catch (error) {
-      console.error('GitHub OAuth error:', error);
+      console.error('❌ GitHub OAuth error:', error);
+      
+      // Clear processing flag on error
+      const processingKey = `github_oauth_processing_${code}`;
+      localStorage.removeItem(processingKey);
+      
+      // Also clear any remaining OAuth state on error
+      localStorage.removeItem('github_oauth_state');
+      
       return null;
     }
   }
@@ -179,5 +208,12 @@ export class AuthService {
       code: code || undefined,
       state: state || undefined,
     };
+  }
+
+  // Clear all OAuth-related storage (useful for debugging)
+  static clearOAuthState(): void {
+    localStorage.removeItem('github_oauth_state');
+    localStorage.removeItem('umikarma-auth');
+    console.log('Cleared all OAuth state');
   }
 } 
