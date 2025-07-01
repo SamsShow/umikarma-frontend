@@ -7,7 +7,11 @@ import {
   SparklesIcon,
   ArrowPathIcon,
   LinkIcon,
-  ExclamationCircleIcon
+  ExclamationCircleIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 import { githubApiService, ContributionActivity } from '../services/githubApiService';
 
@@ -24,16 +28,58 @@ interface ContributionListProps {
   contributions: ContributionData[];
   githubUsername?: string;
   showRealTimeData?: boolean;
+  isCollapsible?: boolean;
+  defaultExpanded?: boolean;
 }
+
+const PaginationControls: React.FC<{
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}> = ({ currentPage, totalPages, onPageChange }) => {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="flex items-center justify-between mt-6 pt-4 border-t border-karma-200">
+      <div className="text-sm text-karma-600">
+        Page {currentPage} of {totalPages}
+      </div>
+      <div className="flex items-center space-x-2">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="p-2 rounded-lg border border-karma-300 hover:bg-karma-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronLeftIcon className="h-4 w-4" />
+        </button>
+        <span className="px-3 py-1 text-sm font-medium text-karma-700">
+          {currentPage}
+        </span>
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="p-2 rounded-lg border border-karma-300 hover:bg-karma-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronRightIcon className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const ContributionList: React.FC<ContributionListProps> = ({ 
   contributions, 
   githubUsername,
-  showRealTimeData = false 
+  showRealTimeData = false,
+  isCollapsible = true,
+  defaultExpanded = true
 }) => {
   const [githubActivities, setGithubActivities] = useState<ContributionActivity[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5);
 
   // Fetch GitHub activities if enabled
   useEffect(() => {
@@ -82,6 +128,19 @@ const ContributionList: React.FC<ContributionListProps> = ({
   const displayContributions = showRealTimeData && githubActivities.length > 0 
     ? allContributions 
     : contributions;
+
+  // Pagination logic
+  const totalPages = Math.ceil(displayContributions.length / itemsPerPage);
+  const paginatedContributions = displayContributions.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset to first page when contributions change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [displayContributions.length]);
+
   const getImpactColor = (impact: number) => {
     if (impact >= 80) return 'bg-accent-100 text-accent-800 border-accent-200';
     if (impact >= 60) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
@@ -120,9 +179,27 @@ const ContributionList: React.FC<ContributionListProps> = ({
 
   return (
     <div className="clean-card">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+      {/* Header - Collapsible */}
+      <div 
+        className={`flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 ${
+          isCollapsible ? 'cursor-pointer' : ''
+        }`}
+        onClick={() => isCollapsible && setIsExpanded(!isExpanded)}
+      >
         <div className="mb-4 sm:mb-0">
-          <h3 className="text-2xl font-bold text-karma-900">Recent Contributions</h3>
+          <div className="flex items-center space-x-3">
+            <SparklesIcon className="h-6 w-6 text-karma-600" />
+            <h3 className="text-2xl font-bold text-karma-900">Recent Contributions</h3>
+            {isCollapsible && (
+              <button className="text-karma-400 hover:text-karma-600">
+                {isExpanded ? (
+                  <ChevronUpIcon className="h-5 w-5" />
+                ) : (
+                  <ChevronDownIcon className="h-5 w-5" />
+                )}
+              </button>
+            )}
+          </div>
           {showRealTimeData && githubUsername && (
             <p className="text-sm text-karma-600 mt-1">
               {githubActivities.length > 0 
@@ -133,154 +210,148 @@ const ContributionList: React.FC<ContributionListProps> = ({
           )}
         </div>
         
-        <div className="flex items-center space-x-3">
-          <span className="text-sm text-karma-600 bg-karma-100 px-3 py-1 rounded-full">
-            {displayContributions.length} activities
-          </span>
-          
-          {showRealTimeData && githubUsername && (
-            <button
-              onClick={fetchGitHubActivities}
-              disabled={isLoading}
-              className="inline-flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"
-            >
-              <ArrowPathIcon className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
-              {isLoading ? 'Loading...' : 'Refresh'}
-            </button>
-          )}
-        </div>
+        {isExpanded && (
+          <div className="flex items-center space-x-3">
+            <span className="text-sm text-karma-600 bg-karma-100 px-3 py-1 rounded-full">
+              {displayContributions.length} activities
+            </span>
+            
+            {showRealTimeData && githubUsername && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent collapse when clicking refresh
+                  fetchGitHubActivities();
+                }}
+                disabled={isLoading}
+                className="inline-flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"
+              >
+                <ArrowPathIcon className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+                {isLoading ? 'Loading...' : 'Refresh'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Error Display */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
-          <ExclamationCircleIcon className="h-5 w-5 text-red-600 mr-2" />
-          <span className="text-red-800 text-sm">{error}</span>
-        </div>
-      )}
+      {/* Content - Only show when expanded */}
+      {isExpanded && (
+        <>
+          {/* Error Display */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
+              <ExclamationCircleIcon className="h-5 w-5 text-red-600 mr-2" />
+              <span className="text-red-800 text-sm">{error}</span>
+            </div>
+          )}
 
-      <div className="space-y-6">
-        {displayContributions.map((activity, index) => {
-          // Find corresponding GitHub activity for additional data
-          const githubActivity = githubActivities.find(ga => 
-            ga.title === activity.title && ga.date === activity.date
-          );
-          
-          return (
-            <div key={index} className="border border-karma-200 rounded-xl p-6 hover:shadow-soft transition-all duration-300 hover:border-karma-300">
-              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-4">
-                <div className="flex items-start space-x-4 flex-1">
-                  <div className="p-3 bg-karma-50 rounded-xl border border-karma-200 flex-shrink-0">
-                    {getTypeIcon(activity.type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <h4 className="font-semibold text-karma-900 text-lg">{activity.title}</h4>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getTypeBadge(activity.type)}`}>
-                        {activity.type.toUpperCase()}
-                      </span>
-                      {githubActivity?.type && (
-                        <span className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
-                          {githubActivity.type.replace('_', ' ')}
-                        </span>
-                      )}
+          <div className="space-y-6">
+            {paginatedContributions.map((activity, index) => {
+              // Find corresponding GitHub activity for additional data
+              const githubActivity = githubActivities.find(ga => 
+                ga.title === activity.title && ga.date === activity.date
+              );
+              
+              return (
+                <div key={index} className="border border-karma-200 rounded-xl p-6 hover:shadow-soft transition-all duration-300 hover:border-karma-300">
+                  <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-4">
+                    <div className="flex items-start space-x-4 flex-1">
+                      <div className="p-3 bg-karma-50 rounded-xl border border-karma-200 flex-shrink-0">
+                        {getTypeIcon(activity.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <h4 className="font-semibold text-karma-900 text-lg">{activity.title}</h4>
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getTypeBadge(activity.type)}`}>
+                            {activity.type.toUpperCase()}
+                          </span>
+                          {githubActivity?.type && (
+                            <span className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                              {githubActivity.type.replace('_', ' ')}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* Repository info for GitHub activities */}
+                        {githubActivity && (
+                          <div className="flex items-center gap-2 mb-2 text-sm text-karma-600">
+                            <CodeBracketIcon className="h-4 w-4" />
+                            <span>{githubActivity.repository}</span>
+                            {githubActivity.url && (
+                              <a
+                                href={githubActivity.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center text-blue-600 hover:text-blue-800 ml-2"
+                              >
+                                <LinkIcon className="h-3 w-3 mr-1" />
+                                View
+                              </a>
+                            )}
+                          </div>
+                        )}
+                        
+                        <p className="text-karma-700 mb-3 leading-relaxed">{activity.description}</p>
+                        
+                        {/* Languages for GitHub activities */}
+                        {githubActivity?.languages && githubActivity.languages.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-3">
+                            {githubActivity.languages.slice(0, 3).map((lang, i) => (
+                              <span key={i} className="text-xs bg-karma-100 text-karma-700 px-2 py-1 rounded-full">
+                                {lang}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        
+                        <div className="flex items-center justify-between text-sm text-karma-600">
+                          <span>{formatDate(activity.date)}</span>
+                        </div>
+                      </div>
                     </div>
                     
-                    {/* Repository info for GitHub activities */}
-                    {githubActivity && (
-                      <div className="flex items-center gap-2 mb-2 text-sm text-karma-600">
-                        <CodeBracketIcon className="h-4 w-4" />
-                        <span>{githubActivity.repository}</span>
-                        {githubActivity.url && (
-                          <a
-                            href={githubActivity.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center text-blue-600 hover:text-blue-800 ml-2"
-                          >
-                            <LinkIcon className="h-3 w-3 mr-1" />
-                            View
-                          </a>
-                        )}
+                    <div className="mt-4 lg:mt-0 lg:ml-6 flex-shrink-0">
+                      <div className={`inline-flex items-center px-4 py-2 rounded-lg border font-semibold ${getImpactColor(activity.impact)}`}>
+                        <span className="text-xl mr-2">{activity.impact}</span>
+                        <span className="text-sm">Impact</span>
                       </div>
-                    )}
-                    
-                    <p className="text-karma-600 mb-3 leading-relaxed">{activity.description}</p>
-                    
-                    {/* Programming languages for GitHub activities */}
-                    {githubActivity?.languages && githubActivity.languages.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {githubActivity.languages.slice(0, 4).map((lang, i) => (
-                          <span key={i} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                            {lang}
-                          </span>
-                        ))}
-                        {githubActivity.languages.length > 4 && (
-                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                            +{githubActivity.languages.length - 4} more
-                          </span>
-                        )}
-                      </div>
-                    )}
+                    </div>
                   </div>
-                </div>
-                
-                <div className="flex flex-col lg:items-end space-y-2 lg:ml-4 mt-4 lg:mt-0">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium border whitespace-nowrap ${getImpactColor(activity.impact)}`}>
-                    Impact Score: {activity.impact}
-                  </span>
-                  <span className="text-karma-500 text-sm whitespace-nowrap">{formatDate(activity.date)}</span>
-                  {githubActivity && (
-                    <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-                      Live Data
-                    </span>
+                  
+                  {activity.aiSummary && (
+                    <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 mt-4">
+                      <div className="flex items-start space-x-3">
+                        <SparklesIcon className="h-5 w-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h5 className="font-medium text-primary-900 mb-2">AI Analysis</h5>
+                          <p className="text-primary-800 text-sm leading-relaxed">{activity.aiSummary}</p>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
-              
-              {/* AI Summary */}
-              {activity.aiSummary && (
-                <div className="bg-gradient-to-r from-primary-50 to-accent-50 border border-primary-200 rounded-xl p-4">
-                  <div className="flex items-start space-x-3">
-                    <div className="p-2 bg-white rounded-lg shadow-soft flex-shrink-0">
-                      <SparklesIcon className="h-4 w-4 text-primary-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-karma-700 leading-relaxed">
-                        <span className="font-semibold text-primary-700">AI Analysis:</span> {activity.aiSummary}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-      
-      {displayContributions.length === 0 && (
-        <div className="text-center py-12 text-karma-500">
-          <div className="p-4 bg-karma-100 rounded-2xl inline-flex mb-4">
-            <CodeBracketIcon className="h-12 w-12 text-karma-400" />
+              );
+            })}
           </div>
-          <h4 className="text-lg font-medium text-karma-700 mb-2">No contributions found</h4>
-          <p className="text-karma-600 mb-4">
-            {showRealTimeData && githubUsername 
-              ? `No activities found for @${githubUsername}. Try refreshing or check if the user has public repositories.`
-              : 'Connect your accounts to start building your karma score!'
-            }
-          </p>
-          
-          {showRealTimeData && githubUsername && !isLoading && (
-            <button
-              onClick={fetchGitHubActivities}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              <ArrowPathIcon className="h-4 w-4 mr-2" />
-              Retry GitHub Analysis
-            </button>
+
+          {/* Pagination Controls */}
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+
+          {displayContributions.length === 0 && !isLoading && (
+            <div className="text-center py-12">
+              <UserIcon className="h-16 w-16 mx-auto text-karma-400 mb-4" />
+              <h3 className="text-lg font-medium text-karma-900 mb-2">No contributions yet</h3>
+              <p className="text-karma-600">
+                {showRealTimeData && githubUsername
+                  ? 'No GitHub activities found for this user.'
+                  : 'Start contributing to see your activities here.'}
+              </p>
+            </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );

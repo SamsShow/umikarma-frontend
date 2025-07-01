@@ -169,6 +169,10 @@ class GitHubApiService {
     return this.makeRequest<any>('/health');
   }
 
+  async getEligibilityCriteria(): Promise<ApiResponse<any>> {
+    return this.makeRequest<any>('/eligibility-criteria');
+  }
+
   async getRateLimitStatus(): Promise<ApiResponse<{ remaining: number; reset: number }>> {
     return this.makeRequest<{ remaining: number; reset: number }>('/rate-limit');
   }

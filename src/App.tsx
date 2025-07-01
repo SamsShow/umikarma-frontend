@@ -8,15 +8,20 @@ import {
   SparklesIcon,
   ArrowDownTrayIcon,
   ArrowLeftOnRectangleIcon,
-  PlusIcon
+  PlusIcon,
+  ChartBarIcon,
+  CodeBracketIcon,
+  RocketLaunchIcon
 } from '@heroicons/react/24/outline';
 import WelcomeScreen from './components/WelcomeScreen';
 import KarmaCard from './components/KarmaCard';
 import ContributionList from './components/ContributionList';
 import AuthModal from './components/AuthModal';
 import { GitHubAnalysisDashboard } from './components/GitHubAnalysisDashboard';
-import { GitHubStatsCard } from './components/GitHubStatsCard';
-import BackendStatus from './components/BackendStatus';
+import MockContributions from './components/MockContributions';
+import CollapsibleCard from './components/CollapsibleCard';
+import ConnectionStatus from './components/ConnectionStatus';
+import { githubApiService } from './services/githubApiService';
 import SplashCursor from './components/SplashCursor';
 import { wagmiConfig } from './config/web3Config';
 import { useAuthStore, AuthUser } from './store/authStore';
@@ -45,6 +50,8 @@ interface ContributionData {
   date: string;
   aiSummary: string;
 }
+
+
 
 // Legacy interface - keeping for backward compatibility
 // interface UserProfile {
@@ -106,6 +113,38 @@ function AppContent() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
   const [currentView, setCurrentView] = useState<'dashboard' | 'github-analysis'>('dashboard');
+  const [realTimeKarmaScore, setRealTimeKarmaScore] = useState<number | null>(null);
+
+  // Fetch real-time karma score when GitHub user is available
+  useEffect(() => {
+    const fetchRealTimeScore = async () => {
+      if (user?.type === 'github' && user.githubData?.username) {
+        try {
+          const result = await githubApiService.getUserSummary(user.githubData.username);
+          if (result.success && result.data) {
+            setRealTimeKarmaScore(result.data.karmaScore);
+          }
+        } catch (error) {
+          console.error('Failed to fetch real-time karma score:', error);
+        }
+      }
+    };
+
+    fetchRealTimeScore();
+  }, [user?.type, user?.githubData?.username]);
+
+  // Get the current karma score (real-time if available, otherwise stored)
+  const getCurrentKarmaScore = () => {
+    // For GitHub users, prefer real-time score if available
+    if (user?.type === 'github' && realTimeKarmaScore !== null) {
+      console.log('Using real-time karma score:', realTimeKarmaScore);
+      return realTimeKarmaScore;
+    }
+    // Fallback to stored score
+    const storedScore = user?.karmaScore || 0;
+    console.log('Using stored karma score:', storedScore);
+    return storedScore;
+  };
 
   // Clean production state management
 
@@ -316,13 +355,8 @@ function AppContent() {
                 Export Proof
               </button>
               
-              <button
-                onClick={handleDisconnect}
-                className="nav-link flex items-center space-x-2"
-              >
-                <ArrowLeftOnRectangleIcon className="h-4 w-4" />
-                <span>Disconnect</span>
-              </button>
+              {/* Connection Status Profile Icon - moved after Export Proof */}
+              <ConnectionStatus onDisconnect={handleDisconnect} />
             </div>
           </div>
         </div>
@@ -344,242 +378,325 @@ function AppContent() {
               Track your contributions and karma score across the decentralized ecosystem
             </p>
           
-          {/* User Info Banner */}
-          <div className="mt-4 p-4 bg-gradient-to-r from-primary-50 to-accent-50 border border-primary-200 rounded-lg">
-            <div className="flex items-center space-x-3">
-              {user.type === 'github' && user.githubData ? (
-                <>
-                  <img
-                    src={user.githubData.avatar_url}
-                    alt={user.githubData.name}
-                    className="h-10 w-10 rounded-full border-2 border-white"
-                  />
-                  <div>
-                    <p className="font-medium text-karma-900">
-                      Connected as {user.githubData.name}
-                    </p>
-                    <p className="text-sm text-karma-600">
-                      @{user.githubData.username} • GitHub Account
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="h-10 w-10 bg-primary-100 rounded-full flex items-center justify-center">
-                    <ShieldCheckIcon className="h-5 w-5 text-primary-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-karma-900">
-                      Connected Wallet
-                    </p>
-                    <p className="text-sm text-karma-600 font-mono">
-                      {user.walletAddress?.slice(0, 6)}...{user.walletAddress?.slice(-4)}
-                    </p>
-                  </div>
-                </>
-              )}
+            {/* User Info Banner */}
+            <div className="mt-4 p-4 bg-gradient-to-r from-primary-50 to-accent-50 border border-primary-200 rounded-lg">
+              <div className="flex items-center space-x-3">
+                {user.type === 'github' && user.githubData ? (
+                  <>
+                    <img
+                      src={user.githubData.avatar_url}
+                      alt={user.githubData.name}
+                      className="h-10 w-10 rounded-full border-2 border-white"
+                    />
+                    <div>
+                      <p className="font-medium text-karma-900">
+                        Connected as {user.githubData.name}
+                      </p>
+                      <p className="text-sm text-karma-600">
+                        @{user.githubData.username} • GitHub Account
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="h-10 w-10 bg-primary-100 rounded-full flex items-center justify-center">
+                      <ShieldCheckIcon className="h-5 w-5 text-primary-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-karma-900">
+                        Connected Wallet
+                      </p>
+                      <p className="text-sm text-karma-600 font-mono">
+                        {user.walletAddress?.slice(0, 6)}...{user.walletAddress?.slice(-4)}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Backend Status */}
-        <div className="mb-6">
-          <BackendStatus />
-        </div>
-
-        {/* GitHub Stats Card - Prominent display for GitHub users */}
-        {user.type === 'github' ? (
-          user.githubData ? (
-            <GitHubStatsCard
-              githubUsername={user.githubData.username}
+          {/* 1. Karma Dashboard - First and non-collapsible */}
+          <div className="mb-8">
+            <KarmaCard
+              karmaScore={user.karmaScore || 0}
+              totalContributions={user.totalContributions || 0}
+              trustFactor={user.trustFactor || 0}
+              recentActivities={getMockContributions(user).length}
+              githubHandle={user.githubData?.username}
+              wallet={user.walletAddress}
               showRealTimeData={true}
             />
-          ) : (
-            <div className="clean-card mb-8">
-              <div className="text-center py-8">
-                <h3 className="text-lg font-medium text-slate-900 mb-2">GitHub Data Loading...</h3>
-                <p className="text-slate-600">Your GitHub profile is connected but data is still loading.</p>
-                <div className="mt-4 text-sm text-slate-500 space-y-1">
-                  <div>User type: {user.type}</div>
-                  <div>GitHub data: Missing or incomplete</div>
-                  <div>User ID: {user.id}</div>
-                  <div className="text-orange-600">⚠️ GitHub connection needs to be reset</div>
-                </div>
-                <div className="mt-4 space-x-3">
-                  <button
-                    onClick={() => {
-                      console.log('Current user state:', user);
-                      console.log('LocalStorage auth:', localStorage.getItem('umikarma-auth'));
-                      console.log('OAuth state:', localStorage.getItem('github_oauth_state'));
-                    }}
-                    className="bg-gray-600 text-white px-4 py-2 rounded text-sm"
-                  >
-                    Debug Auth State
-                  </button>
-                  <button
-                    onClick={() => {
-                      // Clear OAuth state and try again
-                      localStorage.removeItem('github_oauth_state');
-                      localStorage.removeItem('umikarma-auth');
-                      logout();
-                      setTimeout(() => setShowAuthModal(true), 100);
-                    }}
-                    className="bg-red-600 text-white px-4 py-2 rounded text-sm"
-                  >
-                    Reset & Reconnect
-                  </button>
-                </div>
-              </div>
-            </div>
-          )
-        ) : (
-          <div className="clean-card mb-8">
-            <div className="text-center py-8">
-              <h3 className="text-lg font-medium text-slate-900 mb-2">Connect GitHub for Analytics</h3>
-              <p className="text-slate-600">Connect your GitHub account to see detailed contribution analytics.</p>
-              <div className="mt-4 text-sm text-slate-500">
-                Current authentication: {user.type || 'Not authenticated'}
-              </div>
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium"
+          </div>
+
+          {/* 2. GitHub Connection Status */}
+          {user.type !== 'github' && (
+            <div className="mb-8">
+              <CollapsibleCard
+                title="GitHub Integration"
+                icon={<CodeBracketIcon className="h-6 w-6 text-karma-600" />}
+                defaultExpanded={false}
               >
-                Connect GitHub
-              </button>
+                <div className="text-center py-8">
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">Connect GitHub for Analytics</h3>
+                  <p className="text-slate-600">Connect your GitHub account to see detailed contribution analytics.</p>
+                  <div className="mt-4 text-sm text-slate-500">
+                    Current authentication: {user.type || 'Not authenticated'}
+                  </div>
+                  <button
+                    onClick={() => setShowAuthModal(true)}
+                    className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium"
+                  >
+                    Connect GitHub
+                  </button>
+                </div>
+              </CollapsibleCard>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* User Profile Card */}
-        <KarmaCard
-          karmaScore={user.karmaScore || 0}
-          totalContributions={user.totalContributions || 0}
-          trustFactor={user.trustFactor || 0}
-          recentActivities={getMockContributions(user).length}
-          githubHandle={user.githubData?.username}
-          wallet={user.walletAddress}
-          showRealTimeData={true}
-        />
-
-        {/* Recent Activities */}
-        <ContributionList 
-          contributions={getMockContributions(user)} 
-          githubUsername={user.githubData?.username}
-          showRealTimeData={true}
-        />
-
-        {/* Integration Examples Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-          {/* DAO Access Control */}
-          <div className="clean-card">
-            <h3 className="text-xl font-bold text-karma-900 mb-6">DAO Access Control</h3>
-            <div className="space-y-4">
-              <div className="border border-accent-200 bg-accent-50 rounded-xl p-4">
-                <div className="flex items-center space-x-3 mb-2">
-                  <div className="h-8 w-8 bg-accent-500 rounded-lg flex items-center justify-center">
-                    <ShieldCheckIcon className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-accent-800">Access Granted</div>
-                    <div className="text-xs text-accent-700">DAO Y Proposals</div>
-                  </div>
+          {/* 3. Real GitHub Profile Data - For GitHub users only */}
+          {user.type === 'github' && user.githubData && (
+            <div className="mb-8">
+              <CollapsibleCard
+                title="GitHub Profile"
+                icon={<CodeBracketIcon className="h-6 w-6 text-karma-600" />}
+                defaultExpanded={true}
+              >
+                <div className="p-4 bg-karma-50 border border-karma-200 rounded-xl">
+                  <div className="flex items-center space-x-4">
+                    <img
+                      src={user.githubData.avatar_url}
+                      alt={user.githubData.name}
+                      className="h-16 w-16 rounded-full border-2 border-white"
+                    />
+                    <div>
+                      <h4 className="text-lg font-semibold text-karma-900">{user.githubData.name}</h4>
+                      <p className="text-karma-600">@{user.githubData.username}</p>
+                      <p className="text-sm text-karma-500 mt-1">
+                        Public repos: {user.githubData.public_repos} • Followers: {user.githubData.followers}
+                      </p>
+                    </div>
+                                     </div>
                 </div>
-                <p className="text-accent-700 text-sm">
-                  Minimum required: 70/100 • Your score: {user.karmaScore || 0}/100
-                </p>
-              </div>
-              
-              <div className="border border-accent-200 bg-accent-50 rounded-xl p-4">
-                <div className="flex items-center space-x-3 mb-2">
-                  <div className="h-8 w-8 bg-accent-500 rounded-lg flex items-center justify-center">
-                    <ShieldCheckIcon className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-accent-800">Access Granted</div>
-                    <div className="text-xs text-accent-700">TechDAO Council</div>
-                  </div>
-                </div>
-                <p className="text-accent-700 text-sm">
-                  Minimum required: 80/100 • Your score: {user.karmaScore || 0}/100
-                </p>
-              </div>
-              
-              <div className="border border-yellow-200 bg-yellow-50 rounded-xl p-4">
-                <div className="flex items-center space-x-3 mb-2">
-                  <div className="h-8 w-8 bg-yellow-500 rounded-lg flex items-center justify-center">
-                    <ShieldCheckIcon className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-yellow-800">Pending Review</div>
-                    <div className="text-xs text-yellow-700">EliteDAO Treasury</div>
-                  </div>
-                </div>
-                <p className="text-yellow-700 text-sm">
-                  Minimum required: 90/100 • Your score: {user.karmaScore || 0}/100
-                </p>
-              </div>
+              </CollapsibleCard>
             </div>
+          )}
+
+          {/* 4. Demo Contributions */}
+          <div className="mb-8">
+            <MockContributions defaultExpanded={true} />
           </div>
 
-          {/* Developer Integration */}
-          <div className="clean-card">
-            <h3 className="text-xl font-bold text-karma-900 mb-6">Developer Integration</h3>
-            <div className="bg-karma-50 border border-karma-200 rounded-xl p-6">
-              <h4 className="font-semibold text-karma-900 mb-3">SDK Example</h4>
-                             <div className="bg-karma-900 rounded-lg p-4 text-sm font-mono text-white overflow-x-auto">
-                 <div className="text-accent-400">{'// Verify user reputation'}</div>
-                 <div className="text-white">
-                   <div>const karma = await umiKarma</div>
-                   <div>&nbsp;&nbsp;.getUser('{user.walletAddress?.slice(0, 8) || user.id.slice(0, 8)}...')</div>
-                   <div>&nbsp;&nbsp;.getScore();</div>
-                   <div><br /></div>
-                   <div>if (karma &gt;= 70) {'{'}</div>
-                   <div>&nbsp;&nbsp;<span className="text-accent-300">{'// Grant access'}</span></div>
-                   <div>&nbsp;&nbsp;allowProposalSubmission();</div>
-                   <div>{'}'}</div>
-                 </div>
-               </div>
-              
-              <div className="mt-4 space-y-2 text-sm text-karma-600">
-                <div className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-accent-500 rounded-full"></div>
-                  <span>REST API at <code className="bg-karma-200 px-1 rounded text-karma-800">api.umikarma.xyz</code></span>
+          {/* 5. Real Contributions */}
+          <div className="mb-8">
+            <ContributionList 
+              contributions={getMockContributions(user)} 
+              githubUsername={user.githubData?.username}
+              showRealTimeData={true}
+              isCollapsible={true}
+              defaultExpanded={true}
+            />
+          </div>
+
+          {/* 6. DAO Access Control */}
+          <div className="mb-8">
+            <CollapsibleCard
+              title="DAO Access Control"
+              icon={<ShieldCheckIcon className="h-6 w-6 text-karma-600" />}
+              defaultExpanded={true}
+            >
+              <div className="space-y-4">
+                {/* DAO Y Proposals - Requires 70+ */}
+                <div className={`border rounded-xl p-4 ${
+                  getCurrentKarmaScore() >= 70 
+                    ? 'border-accent-200 bg-accent-50' 
+                    : 'border-red-200 bg-red-50'
+                }`}>
+                  <div className="flex items-center space-x-3 mb-2">
+                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
+                      getCurrentKarmaScore() >= 70 
+                        ? 'bg-accent-500' 
+                        : 'bg-red-500'
+                    }`}>
+                      <ShieldCheckIcon className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <div className={`font-medium ${
+                        getCurrentKarmaScore() >= 70 
+                          ? 'text-accent-800' 
+                          : 'text-red-800'
+                      }`}>
+                        {getCurrentKarmaScore() >= 70 ? 'Access Granted' : 'Access Denied'}
+                      </div>
+                      <div className={`text-xs ${
+                        getCurrentKarmaScore() >= 70 
+                          ? 'text-accent-700' 
+                          : 'text-red-700'
+                      }`}>
+                        DAO Y Proposals
+                      </div>
+                    </div>
+                  </div>
+                  <p className={`text-sm ${
+                    getCurrentKarmaScore() >= 70 
+                      ? 'text-accent-700' 
+                      : 'text-red-700'
+                  }`}>
+                    Minimum required: 70/100 • Your score: {getCurrentKarmaScore()}/100
+                  </p>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-accent-500 rounded-full"></div>
-                  <span>SDKs for JavaScript, Python, Rust</span>
+                
+                {/* TechDAO Council - Requires 80+ */}
+                <div className={`border rounded-xl p-4 ${
+                  getCurrentKarmaScore() >= 80 
+                    ? 'border-accent-200 bg-accent-50' 
+                    : 'border-red-200 bg-red-50'
+                }`}>
+                  <div className="flex items-center space-x-3 mb-2">
+                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
+                      getCurrentKarmaScore() >= 80 
+                        ? 'bg-accent-500' 
+                        : 'bg-red-500'
+                    }`}>
+                      <ShieldCheckIcon className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <div className={`font-medium ${
+                        getCurrentKarmaScore() >= 80 
+                          ? 'text-accent-800' 
+                          : 'text-red-800'
+                      }`}>
+                        {getCurrentKarmaScore() >= 80 ? 'Access Granted' : 'Access Denied'}
+                      </div>
+                      <div className={`text-xs ${
+                        getCurrentKarmaScore() >= 80 
+                          ? 'text-accent-700' 
+                          : 'text-red-700'
+                      }`}>
+                        TechDAO Council
+                      </div>
+                    </div>
+                  </div>
+                  <p className={`text-sm ${
+                    getCurrentKarmaScore() >= 80 
+                      ? 'text-accent-700' 
+                      : 'text-red-700'
+                  }`}>
+                    Minimum required: 80/100 • Your score: {getCurrentKarmaScore()}/100
+                  </p>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-accent-500 rounded-full"></div>
-                  <span>Real-time webhooks for score updates</span>
+                
+                {/* EliteDAO Treasury - Requires 90+ */}
+                <div className={`border rounded-xl p-4 ${
+                  getCurrentKarmaScore() >= 90 
+                    ? 'border-accent-200 bg-accent-50' 
+                    : 'border-yellow-200 bg-yellow-50'
+                }`}>
+                  <div className="flex items-center space-x-3 mb-2">
+                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
+                      getCurrentKarmaScore() >= 90 
+                        ? 'bg-accent-500' 
+                        : 'bg-yellow-500'
+                    }`}>
+                      <ShieldCheckIcon className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <div className={`font-medium ${
+                        getCurrentKarmaScore() >= 90 
+                          ? 'text-accent-800' 
+                          : 'text-yellow-800'
+                      }`}>
+                        {getCurrentKarmaScore() >= 90 ? 'Access Granted' : 'Pending Review'}
+                      </div>
+                      <div className={`text-xs ${
+                        getCurrentKarmaScore() >= 90 
+                          ? 'text-accent-700' 
+                          : 'text-yellow-700'
+                      }`}>
+                        EliteDAO Treasury
+                      </div>
+                    </div>
+                  </div>
+                  <p className={`text-sm ${
+                    getCurrentKarmaScore() >= 90 
+                      ? 'text-accent-700' 
+                      : 'text-yellow-700'
+                  }`}>
+                    Minimum required: 90/100 • Your score: {getCurrentKarmaScore()}/100
+                  </p>
                 </div>
               </div>
-            </div>
+            </CollapsibleCard>
           </div>
-        </div>
 
-        {/* Future Features */}
-        <div className="clean-card mt-8">
-          <h3 className="text-xl font-bold text-karma-900 mb-6">🚀 Coming Soon</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-6 bg-gradient-to-br from-primary-50 to-accent-50 border border-primary-200 rounded-xl">
-              <div className="text-3xl mb-3">🔐</div>
-              <h4 className="font-semibold text-primary-900 mb-2">ZK Proofs</h4>
-              <p className="text-primary-700 text-sm">Verify reputation without revealing identity details</p>
-            </div>
-            <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl">
-              <div className="text-3xl mb-3">🌐</div>
-              <h4 className="font-semibold text-purple-900 mb-2">Social Integration</h4>
-              <p className="text-purple-700 text-sm">Lens Protocol & Farcaster reputation tracking</p>
-            </div>
-            <div className="text-center p-6 bg-gradient-to-br from-accent-50 to-green-50 border border-accent-200 rounded-xl">
-              <div className="text-3xl mb-3">🏆</div>
-              <h4 className="font-semibold text-accent-900 mb-2">Dynamic NFTs</h4>
-              <p className="text-accent-700 text-sm">Reputation badges that evolve with your karma</p>
-            </div>
+          {/* 7. Developer Integration */}
+          <div className="mb-8">
+            <CollapsibleCard
+              title="Developer Integration"
+              icon={<CodeBracketIcon className="h-6 w-6 text-karma-600" />}
+              defaultExpanded={true}
+            >
+              <div className="bg-karma-50 border border-karma-200 rounded-xl p-6">
+                <h4 className="font-semibold text-karma-900 mb-3">SDK Example</h4>
+                <div className="bg-karma-900 rounded-lg p-4 text-sm font-mono text-white overflow-x-auto">
+                  <div className="text-accent-400">{'// Verify user reputation'}</div>
+                  <div className="text-white">
+                    <div>const karma = await umiKarma</div>
+                    <div>&nbsp;&nbsp;.getUser('{user.walletAddress?.slice(0, 8) || user.id.slice(0, 8)}...')</div>
+                    <div>&nbsp;&nbsp;.getScore();</div>
+                    <div><br /></div>
+                    <div>if (karma &gt;= 70) {'{'}</div>
+                    <div>&nbsp;&nbsp;<span className="text-accent-300">{'// Grant access'}</span></div>
+                    <div>&nbsp;&nbsp;allowProposalSubmission();</div>
+                    <div>{'}'}</div>
+                  </div>
+                </div>
+                
+                <div className="mt-4 space-y-2 text-sm text-karma-600">
+                  <div className="flex items-center space-x-2">
+                    <div className="h-2 w-2 bg-accent-500 rounded-full"></div>
+                    <span>REST API at <code className="bg-karma-200 px-1 rounded text-karma-800">api.umikarma.xyz</code></span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="h-2 w-2 bg-accent-500 rounded-full"></div>
+                    <span>SDKs for JavaScript, Python, Rust</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="h-2 w-2 bg-accent-500 rounded-full"></div>
+                    <span>Real-time webhooks for score updates</span>
+                  </div>
+                </div>
+              </div>
+            </CollapsibleCard>
           </div>
-        </div>
-      </main>
+
+          {/* 8. Future Features */}
+          <div className="mb-8">
+            <CollapsibleCard
+              title="🚀 Coming Soon"
+              icon={<RocketLaunchIcon className="h-6 w-6 text-karma-600" />}
+              defaultExpanded={true}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="text-center p-6 bg-gradient-to-br from-primary-50 to-accent-50 border border-primary-200 rounded-xl">
+                  <div className="text-3xl mb-3">🔐</div>
+                  <h4 className="font-semibold text-primary-900 mb-2">ZK Proofs</h4>
+                  <p className="text-primary-700 text-sm">Verify reputation without revealing identity details</p>
+                </div>
+                <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl">
+                  <div className="text-3xl mb-3">🌐</div>
+                  <h4 className="font-semibold text-purple-900 mb-2">Social Integration</h4>
+                  <p className="text-purple-700 text-sm">Lens Protocol & Farcaster reputation tracking</p>
+                </div>
+                <div className="text-center p-6 bg-gradient-to-br from-accent-50 to-green-50 border border-accent-200 rounded-xl">
+                  <div className="text-3xl mb-3">🏆</div>
+                  <h4 className="font-semibold text-accent-900 mb-2">Dynamic NFTs</h4>
+                  <p className="text-accent-700 text-sm">Reputation badges that evolve with your karma</p>
+                </div>
+              </div>
+            </CollapsibleCard>
+          </div>
+        </main>
       )}
 
       {/* Auth Modal */}
