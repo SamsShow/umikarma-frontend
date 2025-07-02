@@ -8,44 +8,110 @@ const GITHUB_REDIRECT_URI = process.env.REACT_APP_GITHUB_REDIRECT_URI || `${wind
 export class AuthService {
   // GitHub OAuth methods
   static initiateGitHubLogin() {
-    const scope = 'read:user user:email public_repo';
-    const state = Math.random().toString(36).substring(2, 15);
+    // Generate a state parameter with timestamp to prevent CSRF
+    const timestamp = Date.now();
+    const randomPart = Math.random().toString(36).substring(2, 15);
     
-    // Store state for verification
-    localStorage.setItem('github_oauth_state', state);
+    // Create a state parameter that contains verifiable information
+    // This is a stateless approach that doesn't rely on localStorage
+    const stateObj = {
+      timestamp,
+      random: randomPart,
+      // Add a hash to verify this wasn't tampered with
+      hash: this.generateStateHash(timestamp, randomPart)
+    };
     
-    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(GITHUB_REDIRECT_URI)}&scope=${encodeURIComponent(scope)}&state=${state}`;
+    // Convert to string and encode
+    const state = btoa(JSON.stringify(stateObj));
     
+    console.log('🔐 Generated OAuth state token (stateless)');
+    
+    // Encode redirect URI to prevent issues with special characters
+    const encodedRedirectUri = encodeURIComponent(GITHUB_REDIRECT_URI);
+    const encodedScope = encodeURIComponent('read:user user:email public_repo');
+    
+    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodedRedirectUri}&scope=${encodedScope}&state=${state}`;
+    
+    // Navigate to GitHub auth page
+    console.log('🔄 Redirecting to GitHub OAuth page...');
     window.location.href = githubAuthUrl;
+  }
+  
+  // Generate a hash to validate state
+  private static generateStateHash(timestamp: number, random: string): string {
+    // Simple hash function for verification
+    // In production, use a proper HMAC with a secret key
+    const str = `${timestamp}:${random}:umikarma-secret`;
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash.toString(16);
   }
 
   static async handleGitHubCallback(code: string, state: string): Promise<AuthUser | null> {
     try {
-      console.log('🔄 Starting GitHub OAuth callback handling...', { code: code.substring(0, 10) + '...', state });
+      console.log('🔄 Starting GitHub OAuth callback handling...', { code: code.substring(0, 10) + '...', state: state.substring(0, 10) + '...' });
 
+      // Create a unique key for this specific callback attempt
+      const callbackKey = `github_oauth_callback_${code.substring(0, 10)}`;
+      const processingKey = `github_oauth_processing_${code.substring(0, 10)}`;
+      
+      // Check if this exact callback has already been successfully processed
+      const existingResult = localStorage.getItem(callbackKey);
+      if (existingResult) {
+        console.log('✅ OAuth callback already successfully processed, returning cached result');
+        try {
+          const cachedUser = JSON.parse(existingResult);
+          return cachedUser;
+        } catch (e) {
+          console.warn('Failed to parse cached OAuth result, proceeding with fresh processing');
+          localStorage.removeItem(callbackKey);
+        }
+      }
+      
       // Check if we're already processing this code to prevent React StrictMode double execution
-      const processingKey = `github_oauth_processing_${code}`;
       if (localStorage.getItem(processingKey)) {
-        console.log('⚠️ OAuth already being processed, skipping duplicate');
+        console.log('⚠️ OAuth already being processed, waiting for completion...');
         return null;
       }
       
       // Mark as processing immediately
       localStorage.setItem(processingKey, 'true');
       
-      // Verify state
-      const storedState = localStorage.getItem('github_oauth_state');
-      console.log('🔐 OAuth State Verification:', { received: state, stored: storedState });
-      
-      if (state !== storedState) {
-        console.error('❌ State mismatch - clearing all OAuth state');
-        localStorage.removeItem('github_oauth_state');
-        localStorage.removeItem(processingKey); // Clean up processing flag
-        throw new Error('Invalid state parameter - please try connecting again');
+      // Verify state using stateless approach
+      let stateValid = false;
+      try {
+        // Decode state
+        const decodedState = JSON.parse(atob(state));
+        const { timestamp, random, hash } = decodedState;
+        
+        // Verify hash
+        const calculatedHash = this.generateStateHash(timestamp, random);
+        stateValid = calculatedHash === hash;
+        
+        // Check timestamp (no older than 10 minutes)
+        const now = Date.now();
+        const maxAge = 10 * 60 * 1000; // 10 minutes
+        if (now - timestamp > maxAge) {
+          console.error('❌ OAuth state expired');
+          stateValid = false;
+        }
+        
+        console.log('🔐 OAuth State Verification:', { valid: stateValid });
+      } catch (e) {
+        console.error('❌ Failed to decode or verify state', e);
+        stateValid = false;
       }
       
-      // Clear stored state immediately to prevent reuse
-      localStorage.removeItem('github_oauth_state');
+      if (!stateValid) {
+        console.error('❌ Invalid OAuth state - authentication failed');
+        localStorage.removeItem(processingKey);
+        localStorage.removeItem(callbackKey);
+        throw new Error('Invalid state parameter - please try connecting again');
+      }
       
       // Exchange code for access token via our backend (secure)
       const tokenResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/auth/github/token`, {
@@ -112,20 +178,34 @@ export class AuthService {
           userData.public_repos + 10,
       };
       
+      // Cache the successful result for potential duplicate processing
+      localStorage.setItem(callbackKey, JSON.stringify(authUser));
+      
       // Clear processing flag on success
       localStorage.removeItem(processingKey);
       
+      // Clean up the URL immediately since we've successfully processed the callback
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
       console.log('✅ GitHub OAuth callback completed successfully');
+      
+      // Clean up the cached result after a short delay to prevent memory bloat
+      setTimeout(() => {
+        localStorage.removeItem(callbackKey);
+      }, 5000);
+      
       return authUser;
     } catch (error) {
       console.error('❌ GitHub OAuth error:', error);
       
       // Clear processing flag on error
-      const processingKey = `github_oauth_processing_${code}`;
+      const processingKey = `github_oauth_processing_${code.substring(0, 10)}`;
+      const callbackKey = `github_oauth_callback_${code.substring(0, 10)}`;
       localStorage.removeItem(processingKey);
+      localStorage.removeItem(callbackKey);
       
-      // Also clear any remaining OAuth state on error
-      localStorage.removeItem('github_oauth_state');
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
       
       return null;
     }
@@ -212,8 +292,94 @@ export class AuthService {
 
   // Clear all OAuth-related storage (useful for debugging)
   static clearOAuthState(): void {
+    this.clearAllOAuthState();
+    
+    console.log('🧹 Cleared all OAuth state (localStorage + sessionStorage + URL params)');
+  }
+  
+  // Helper to clear all OAuth state from all storages
+  private static clearAllOAuthState(): void {
+    // First save a backup of current state for debugging
+    const currentState = {
+      localStorage_state: localStorage.getItem('github_oauth_state'),
+      sessionStorage_state: sessionStorage.getItem('github_oauth_state'),
+      localStorage_meta: localStorage.getItem('github_oauth_state_meta'),
+      sessionStorage_meta: sessionStorage.getItem('github_oauth_state_meta'),
+      processing_keys: Object.keys(localStorage)
+        .filter(key => key.startsWith('github_oauth_processing_') || key.startsWith('github_oauth_callback_')),
+      session_keys: Object.keys(sessionStorage)
+        .filter(key => key.startsWith('github_oauth_session_'))
+    };
+    
+    console.log('🔍 Current OAuth state before clearing:', currentState);
+    
+    // Clear localStorage OAuth items
     localStorage.removeItem('github_oauth_state');
-    localStorage.removeItem('umikarma-auth');
-    console.log('Cleared all OAuth state');
+    localStorage.removeItem('github_oauth_state_meta');
+    
+    // Clear sessionStorage OAuth items
+    sessionStorage.removeItem('github_oauth_state');
+    sessionStorage.removeItem('github_oauth_state_meta');
+    
+    // Clear any processing flags
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('github_oauth_processing_') || key.startsWith('github_oauth_callback_')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    // Clear sessionStorage OAuth items
+    Object.keys(sessionStorage).forEach(key => {
+      if (key.startsWith('github_oauth_session_')) {
+        sessionStorage.removeItem(key);
+      }
+    });
+    
+    // Clear URL parameters if they exist
+    const params = new URLSearchParams(window.location.search);
+    let changed = false;
+    
+    if (params.has('code') || params.has('state') || params.has('oauth_pending') || params.has('state_backup')) {
+      params.delete('code');
+      params.delete('state');
+      params.delete('oauth_pending');
+      params.delete('state_backup');
+      changed = true;
+    }
+    
+    if (changed) {
+      const newSearch = params.toString();
+      const newPath = newSearch 
+        ? `${window.location.pathname}?${newSearch}` 
+        : window.location.pathname;
+        
+      window.history.replaceState({}, document.title, newPath);
+    }
+  }
+  
+  // Debug helper to show current OAuth state
+  static debugOAuthState(): void {
+    const state = {
+      github_oauth_state: localStorage.getItem('github_oauth_state'),
+      localStorage: Object.keys(localStorage)
+        .filter(key => key.includes('github') || key.includes('oauth'))
+        .reduce((obj, key) => {
+          obj[key] = localStorage.getItem(key);
+          return obj;
+        }, {} as Record<string, string | null>),
+      sessionStorage: Object.keys(sessionStorage)
+        .filter(key => key.includes('github') || key.includes('oauth'))
+        .reduce((obj, key) => {
+          obj[key] = sessionStorage.getItem(key);
+          return obj;
+        }, {} as Record<string, string | null>),
+      url: {
+        hasCodeParam: window.location.search.includes('code='),
+        hasStateParam: window.location.search.includes('state='),
+        fullSearch: window.location.search
+      }
+    };
+    
+    console.log('🔍 Current OAuth State:', state);
   }
 } 

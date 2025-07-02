@@ -134,7 +134,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, onErr
 
               <div className="mt-6 pt-4 border-t border-karma-100">
                 <p className="text-xs text-karma-500 text-center">
-                  You can connect both methods later to maximize your karma score
+                  💡 Pro tip: Connect both wallet + GitHub for maximum karma and trust scores!
                 </p>
               </div>
             </div>

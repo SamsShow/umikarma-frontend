@@ -1,24 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { UserIcon, TrophyIcon, ShieldCheckIcon, CalendarIcon, ArrowPathIcon, CodeBracketIcon } from '@heroicons/react/24/outline';
+import React, { useEffect, useState, useCallback } from 'react';
+import { UserIcon, TrophyIcon, ShieldCheckIcon, CalendarIcon, ArrowPathIcon, CodeBracketIcon, WalletIcon } from '@heroicons/react/24/outline';
 import { githubApiService, GitHubUserSummary } from '../services/githubApiService';
+import { AuthUser } from '../store/authStore';
 
 interface KarmaCardProps {
-  karmaScore: number;
-  totalContributions: number;
-  trustFactor: number;
-  recentActivities: number;
-  githubHandle?: string;
-  wallet?: string;
+  user: AuthUser;
   showRealTimeData?: boolean;
 }
 
 const KarmaCard: React.FC<KarmaCardProps> = ({
-  karmaScore,
-  totalContributions,
-  trustFactor,
-  recentActivities,
-  githubHandle,
-  wallet,
+  user,
   showRealTimeData = false
 }) => {
   const [githubData, setGithubData] = useState<GitHubUserSummary | null>(null);
@@ -26,20 +17,14 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   // Fetch real GitHub data if enabled and GitHub handle is provided
-  useEffect(() => {
-    if (showRealTimeData && githubHandle) {
-      fetchGitHubData();
-    }
-  }, [showRealTimeData, githubHandle]);
-
-  const fetchGitHubData = async () => {
-    if (!githubHandle) return;
+  const fetchGitHubData = useCallback(async () => {
+    if (!user.githubData?.username) return;
     
     setIsLoading(true);
     setError(null);
     
     try {
-      const result = await githubApiService.getUserSummary(githubHandle);
+      const result = await githubApiService.getUserSummary(user.githubData.username);
       
       if (result.success && result.data) {
         setGithubData(result.data);
@@ -51,9 +36,15 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user.githubData?.username]);
 
-  // Use real GitHub data if available, otherwise fall back to props
+  useEffect(() => {
+    if (showRealTimeData && user.githubData?.username) {
+      fetchGitHubData();
+    }
+  }, [showRealTimeData, user.githubData?.username, fetchGitHubData]);
+
+  // Use real GitHub data if available, otherwise fall back to user data
   const displayData = githubData ? {
     karmaScore: githubData.karmaScore,
     totalContributions: githubData.totalContributions.commits + 
@@ -66,13 +57,13 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
     avatar: githubData.avatar_url,
     topLanguages: githubData.topLanguages
   } : {
-    karmaScore,
-    totalContributions,
-    trustFactor,
-    recentActivities,
-    username: githubHandle,
-    name: null,
-    avatar: null,
+    karmaScore: user.karmaScore || 0,
+    totalContributions: user.totalContributions || 0,
+    trustFactor: user.trustFactor || 0,
+    recentActivities: user.totalContributions || 0,
+    username: user.githubData?.username,
+    name: user.githubData?.name,
+    avatar: user.githubData?.avatar_url,
     topLanguages: []
   };
 
@@ -93,6 +84,31 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
     if (score >= 60) return 'from-yellow-500 to-amber-600';
     return 'from-red-500 to-red-600';
   };
+
+  // Helper function to get display name
+  const getDisplayName = () => {
+    if (displayData.name) return displayData.name;
+    if (displayData.username) return `@${displayData.username}`;
+    if (user.walletAddress) return `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}`;
+    return 'Anonymous User';
+  };
+
+  // Helper function to get connection status
+  const getConnectionStatus = () => {
+    const hasWallet = !!user.walletAddress;
+    const hasGitHub = !!user.githubData;
+    
+    if (hasWallet && hasGitHub) {
+      return { text: 'Wallet + GitHub Connected', color: 'bg-green-500', type: 'combined' };
+    } else if (hasGitHub) {
+      return { text: 'GitHub Connected', color: 'bg-accent-500', type: 'github' };
+    } else if (hasWallet) {
+      return { text: 'Wallet Connected', color: 'bg-primary-500', type: 'wallet' };
+    }
+    return { text: 'Not Connected', color: 'bg-gray-400', type: 'none' };
+  };
+
+  const connectionStatus = getConnectionStatus();
 
   return (
     <div className="karma-card-special mb-8">
@@ -115,25 +131,42 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
           {/* User Info */}
           <div>
             <h2 className="text-2xl font-bold text-karma-900 mb-1">
-              {displayData.name || (displayData.username ? `@${displayData.username}` : 'Anonymous User')}
+              {getDisplayName()}
             </h2>
+            
+            {/* Show GitHub username if available and different from display name */}
             {displayData.name && displayData.username && (
               <p className="text-karma-600 text-sm mb-1">@{displayData.username}</p>
             )}
-            <p className="text-karma-600 font-mono text-sm">
-              {wallet ? `${wallet.slice(0, 6)}...${wallet.slice(-4)}` : 'No wallet connected'}
-            </p>
+            
+            {/* Show wallet address if available */}
+            {user.walletAddress && (
+              <p className="text-karma-600 font-mono text-sm flex items-center">
+                <WalletIcon className="h-4 w-4 mr-1" />
+                {user.walletAddress.slice(0, 6)}...{user.walletAddress.slice(-4)}
+              </p>
+            )}
+            
+            {/* Show GitHub handle if wallet-only user */}
+            {user.type === 'wallet' && !user.githubData && (
+              <p className="text-karma-500 text-sm italic">No GitHub connected</p>
+            )}
             
             {/* Status Indicators */}
-            <div className="flex items-center space-x-4 mt-2">
+            <div className="flex items-center space-x-4 mt-3">
               <div className="flex items-center space-x-2">
-                <div className={`h-2 w-2 rounded-full ${githubData ? 'bg-green-500' : 'bg-accent-500'}`}></div>
+                <div className={`h-2 w-2 rounded-full ${connectionStatus.color}`}></div>
                 <span className="text-sm text-karma-600">
-                  {githubData ? 'Live GitHub Data' : 'Connected & Verified'}
+                  {connectionStatus.text}
                 </span>
+                {connectionStatus.type === 'combined' && (
+                  <span className="text-xs bg-accent-100 text-accent-700 px-2 py-1 rounded-full font-medium">
+                    ✨ Maximum Trust
+                  </span>
+                )}
               </div>
               
-              {showRealTimeData && githubHandle && (
+              {showRealTimeData && user.githubData?.username && (
                 <button
                   onClick={fetchGitHubData}
                   disabled={isLoading}
@@ -142,6 +175,27 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
                   <ArrowPathIcon className={`h-3 w-3 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
                   {isLoading ? 'Updating...' : 'Refresh'}
                 </button>
+              )}
+            </div>
+            
+            {/* Connection Type Badges */}
+            <div className="flex items-center space-x-2 mt-2">
+              {user.walletAddress && (
+                <span className="inline-flex items-center text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded">
+                  <WalletIcon className="h-3 w-3 mr-1" />
+                  Wallet
+                </span>
+              )}
+              {user.githubData && (
+                <span className="inline-flex items-center text-xs bg-accent-100 text-accent-700 px-2 py-1 rounded">
+                  <CodeBracketIcon className="h-3 w-3 mr-1" />
+                  GitHub
+                </span>
+              )}
+              {githubData && (
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                  Live Data
+                </span>
               )}
             </div>
             
@@ -174,9 +228,12 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
           </div>
           <p className="text-karma-600 font-medium">Karma Score</p>
           <p className="text-sm text-karma-500">out of 100</p>
-          {githubData && (
-            <p className="text-xs text-karma-500 mt-1">
-              Trust: {Math.round(displayData.trustFactor * 100)}%
+          <p className="text-xs text-karma-500 mt-1">
+            Trust: {Math.round(displayData.trustFactor * 100)}%
+          </p>
+          {user.type === 'combined' && (
+            <p className="text-xs text-accent-600 font-medium mt-1">
+              +Bonus for dual verification
             </p>
           )}
         </div>
@@ -200,86 +257,77 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
             </div>
           )}
         </div>
-        
+
         <div className="stat-card text-center">
           <div className="flex justify-center mb-3">
             <div className="p-3 bg-white rounded-xl shadow-soft">
-              <ShieldCheckIcon className="h-6 w-6 text-accent-600" />
+              <ShieldCheckIcon className="h-6 w-6 text-karma-700" />
             </div>
           </div>
           <div className="text-2xl font-bold text-karma-900 mb-1">
-            {(displayData.trustFactor * 100).toFixed(0)}%
+            {Math.round(displayData.trustFactor * 100)}%
           </div>
           <div className="text-karma-600 text-sm font-medium">Trust Factor</div>
-          {githubData && (
-            <div className="text-xs text-karma-500 mt-1">
-              Based on contribution quality
-            </div>
-          )}
+          <div className="text-xs text-karma-500 mt-1">
+            {user.type === 'combined' ? 'Dual verified' : user.type === 'github' ? 'GitHub verified' : 'Wallet verified'}
+          </div>
         </div>
-        
+
         <div className="stat-card text-center">
           <div className="flex justify-center mb-3">
             <div className="p-3 bg-white rounded-xl shadow-soft">
-              <CodeBracketIcon className="h-6 w-6 text-primary-600" />
+              <CalendarIcon className="h-6 w-6 text-karma-700" />
             </div>
           </div>
           <div className="text-2xl font-bold text-karma-900 mb-1">
             {displayData.recentActivities}
           </div>
           <div className="text-karma-600 text-sm font-medium">
-            {githubData ? 'Repositories' : 'Recent Activities'}
+            {user.githubData ? 'Active Repositories' : 'Recent Activities'}
           </div>
           {githubData && (
             <div className="text-xs text-karma-500 mt-1">
-              {githubData.totalContributions.issues} issues resolved
+              {githubData.totalContributions.issues} issues opened
             </div>
           )}
         </div>
       </div>
 
-      {/* GitHub Languages */}
-      {githubData && displayData.topLanguages.length > 0 && (
-        <div className="border-t border-karma-100 pt-6">
-          <h4 className="text-sm font-medium text-karma-700 mb-3">Top Languages</h4>
+      {/* Programming Languages (GitHub only) */}
+      {displayData.topLanguages && displayData.topLanguages.length > 0 && (
+        <div className="mb-6">
+          <h4 className="text-lg font-semibold text-karma-900 mb-4 flex items-center">
+            <CodeBracketIcon className="h-5 w-5 mr-2" />
+            Top Programming Languages
+          </h4>
           <div className="flex flex-wrap gap-2">
-            {displayData.topLanguages.slice(0, 6).map((language, index) => (
+            {displayData.topLanguages.slice(0, 6).map((lang, index) => (
               <span
                 key={index}
-                className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
+                className="px-3 py-1 bg-karma-100 text-karma-700 rounded-full text-sm font-medium"
               >
-                {language}
+                {lang}
               </span>
             ))}
-            {displayData.topLanguages.length > 6 && (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-karma-100 text-karma-600">
-                +{displayData.topLanguages.length - 6} more
-              </span>
-            )}
           </div>
         </div>
       )}
 
-      {/* GitHub Analysis CTA */}
-      {githubHandle && !githubData && showRealTimeData && (
-        <div className="border-t border-karma-100 pt-6">
-          <div className="text-center bg-blue-50 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">Get Real-Time GitHub Analysis</h4>
-            <p className="text-xs text-blue-700 mb-3">
-              Connect to our backend to see live karma scoring, contribution analysis, and AI insights.
-            </p>
-            <button
-              onClick={fetchGitHubData}
-              disabled={isLoading}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isLoading ? (
-                <ArrowPathIcon className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <TrophyIcon className="h-4 w-4 mr-2" />
-              )}
-              {isLoading ? 'Analyzing...' : 'Analyze GitHub Profile'}
-            </button>
+      {/* Connection Suggestions */}
+      {user.type !== 'combined' && (
+        <div className="bg-gradient-to-r from-accent-50 to-primary-50 border border-accent-200 rounded-xl p-4">
+          <h4 className="font-semibold text-karma-900 mb-2 flex items-center">
+            <TrophyIcon className="h-4 w-4 mr-2 text-accent-600" />
+            Boost Your Karma
+          </h4>
+          <p className="text-sm text-karma-600 mb-3">
+            {user.type === 'wallet' 
+              ? 'Connect your GitHub account to increase your karma score and trust factor!'
+              : 'Connect your wallet to increase your karma score and trust factor!'
+            }
+          </p>
+          <div className="text-xs text-karma-500">
+            💡 Combined profiles get higher karma scores and increased trust ratings
           </div>
         </div>
       )}

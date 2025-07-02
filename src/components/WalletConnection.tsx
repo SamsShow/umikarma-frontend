@@ -8,7 +8,6 @@ import {
   InformationCircleIcon 
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../store/authStore';
-import { AuthService } from '../services/authService';
 import NetworkSwitcher from './NetworkSwitcher';
 
 interface WalletConnectionProps {
@@ -20,7 +19,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({ onSuccess, onError 
   const { address, isConnected, chain } = useAccount();
   const { open } = useWeb3Modal();
   const { disconnect } = useDisconnect();
-  const { setUser, setLoading, user } = useAuthStore();
+  const { connectWallet, setLoading, user, logout } = useAuthStore();
   const [showRpcNotice, setShowRpcNotice] = useState(true);
   const [connectionProcessed, setConnectionProcessed] = useState(false);
   const isProcessingConnection = useRef(false);
@@ -41,32 +40,15 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({ onSuccess, onError 
       setLoading(true);
       
       try {
-        // Create wallet user and fetch profile data
-        const walletUser = AuthService.createWalletUser(address, chain?.id);
+        // Use the new connectWallet method that handles merging
+        connectWallet(address, chain?.id);
         
-        // Simulate fetching additional profile data with error handling
-        AuthService.fetchUserProfile(walletUser.id)
-          .then((profileData) => {
-            if (profileData) {
-              setUser({ ...walletUser, ...profileData });
-            } else {
-              setUser(walletUser);
-            }
-            setLoading(false);
-            setConnectionProcessed(true);
-            isProcessingConnection.current = false;
-            onSuccessRef.current?.();
-          })
-          .catch((err) => {
-            console.error('Error fetching profile:', err);
-            setUser(walletUser);
-            setLoading(false);
-            setConnectionProcessed(true);
-            isProcessingConnection.current = false;
-            onSuccessRef.current?.();
-          });
+        setLoading(false);
+        setConnectionProcessed(true);
+        isProcessingConnection.current = false;
+        onSuccessRef.current?.();
       } catch (err) {
-        console.error('Error creating wallet user:', err);
+        console.error('Error connecting wallet:', err);
         setLoading(false);
         setConnectionProcessed(true);
         isProcessingConnection.current = false;
@@ -79,7 +61,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({ onSuccess, onError 
       setConnectionProcessed(false);
       isProcessingConnection.current = false;
     }
-  }, [isConnected, address, chain?.id, connectionProcessed, setUser, setLoading]);
+  }, [isConnected, address, chain?.id, connectionProcessed, connectWallet, setLoading]);
 
   const handleConnect = async () => {
     try {
@@ -93,12 +75,33 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({ onSuccess, onError 
 
   const handleDisconnect = useCallback(() => {
     disconnect();
-    setUser(null);
+    
+    // If user has both wallet and GitHub, only remove wallet part
+    if (user?.type === 'combined' && user.githubData) {
+      // Keep GitHub data but remove wallet
+      const githubOnlyUser = {
+        id: `github_${user.githubData.username}`,
+        type: 'github' as const,
+        githubData: user.githubData,
+        karmaScore: user.karmaScore ? Math.max(user.karmaScore - 5, 0) : 75,
+        trustFactor: user.trustFactor ? Math.max(user.trustFactor - 0.1, 0.5) : 0.8,
+        totalContributions: user.totalContributions,
+      };
+      
+      useAuthStore.getState().setUser(githubOnlyUser);
+    } else {
+      // Complete logout if no GitHub connection
+      logout();
+    }
+    
     setConnectionProcessed(false);
     isProcessingConnection.current = false;
-  }, [disconnect, setUser]);
+  }, [disconnect, user, logout]);
 
-  if (isConnected && address) {
+  // Check if wallet is connected (either wallet-only or combined)
+  const isWalletConnected = isConnected && address && (user?.walletAddress === address);
+
+  if (isWalletConnected) {
     return (
       <div className="clean-card max-w-md mx-auto">
         <div className="flex items-center space-x-3 mb-4">
@@ -106,6 +109,9 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({ onSuccess, onError 
           <div>
             <h3 className="font-semibold text-karma-900">Wallet Connected</h3>
             <p className="text-sm text-karma-600">Chain: {chain?.name || 'Unknown'}</p>
+            {user?.type === 'combined' && (
+              <p className="text-xs text-accent-600 font-medium">✨ Combined with GitHub</p>
+            )}
           </div>
         </div>
         
@@ -124,7 +130,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({ onSuccess, onError 
           onClick={handleDisconnect}
           className="btn-secondary w-full"
         >
-          Disconnect Wallet
+          {user?.type === 'combined' ? 'Disconnect Wallet (Keep GitHub)' : 'Disconnect Wallet'}
         </button>
       </div>
     );
@@ -142,8 +148,16 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({ onSuccess, onError 
           Connect Your Wallet
         </h3>
         <p className="text-karma-600">
-          Connect to access your UmiKarma reputation profile
+          {user?.type === 'github' ? 
+            'Connect your wallet to boost your karma score!' : 
+            'Connect to access your UmiKarma reputation profile'
+          }
         </p>
+        {user?.type === 'github' && (
+          <p className="text-sm text-accent-600 mt-2 font-medium">
+            🎯 Adding wallet to existing GitHub profile
+          </p>
+        )}
       </div>
 
       {/* RPC Status Notice */}
@@ -203,36 +217,10 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({ onSuccess, onError 
           <span>Connect Wallet</span>
         </button>
 
-        <div className="border-t border-karma-100 pt-4">
-          <NetworkSwitcher />
-        </div>
-      </div>
-
-      <div className="mt-6 pt-4 border-t border-karma-100">
-        <div className="text-xs text-karma-500 text-center space-y-1">
-          <p>
-            <strong>Umi Devnet:</strong> Get test ETH from{' '}
-            <a 
-              href="https://devnet.explorer.moved.network" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-primary-600 hover:text-primary-700 underline"
-            >
-              Umi Explorer
-            </a>
+        <div className="text-center">
+          <p className="text-xs text-karma-500">
+            Supports MetaMask, WalletConnect, Coinbase Wallet and more
           </p>
-          <p>
-            <strong>Polygon Amoy:</strong> Get test MATIC from{' '}
-            <a 
-              href="https://faucet.polygon.technology" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-primary-600 hover:text-primary-700 underline"
-            >
-              Polygon Faucet
-            </a>
-          </p>
-          <p>By connecting, you agree to UmiKarma's Terms of Service and Privacy Policy</p>
         </div>
       </div>
     </div>
