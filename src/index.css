@@ -209,26 +209,26 @@
   }
   
   .gradient-card {
-    @apply bg-gradient-to-br from-white via-karma-50/30 to-primary-50/20 backdrop-blur-sm rounded-3xl border border-white/60 p-8 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2;
+    @apply bg-gradient-to-br from-white via-karma-50/80 to-primary-50/60 backdrop-blur-sm rounded-3xl border border-white/80 p-8 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2;
   }
   
   .gradient-card-blue {
-    @apply bg-gradient-to-br from-blue-50/50 via-white to-indigo-50/30 backdrop-blur-sm rounded-3xl border border-blue-200/40 p-8 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2;
+    @apply bg-gradient-to-br from-blue-50/90 via-white to-indigo-50/70 backdrop-blur-sm rounded-3xl border border-blue-200/70 p-8 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2;
   }
   
   .gradient-card-green {
-    @apply bg-gradient-to-br from-emerald-50/50 via-white to-green-50/30 backdrop-blur-sm rounded-3xl border border-emerald-200/40 p-8 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2;
+    @apply bg-gradient-to-br from-emerald-50/90 via-white to-green-50/70 backdrop-blur-sm rounded-3xl border border-emerald-200/70 p-8 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2;
   }
   
   .gradient-card-yellow {
-    @apply bg-gradient-to-br from-yellow-50/50 via-white to-amber-50/30 backdrop-blur-sm rounded-3xl border border-yellow-200/40 p-8 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2;
+    @apply bg-gradient-to-br from-yellow-50/90 via-white to-amber-50/70 backdrop-blur-sm rounded-3xl border border-yellow-200/70 p-8 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2;
   }
   
   .gradient-card-pink {
-    @apply bg-gradient-to-br from-pink-50/50 via-white to-rose-50/30 backdrop-blur-sm rounded-3xl border border-pink-200/40 p-8 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2;
+    @apply bg-gradient-to-br from-pink-50/90 via-white to-rose-50/70 backdrop-blur-sm rounded-3xl border border-pink-200/70 p-8 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2;
   }
   
   .gradient-card-mixed {
-    @apply bg-gradient-to-br from-purple-50/50 via-white to-blue-50/30 backdrop-blur-sm rounded-3xl border border-purple-200/40 p-8 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2;
+    @apply bg-gradient-to-br from-purple-50/90 via-white to-blue-50/70 backdrop-blur-sm rounded-3xl border border-purple-200/70 p-8 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2;
   }
 }

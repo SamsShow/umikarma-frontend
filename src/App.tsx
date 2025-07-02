@@ -21,6 +21,7 @@ import { GitHubAnalysisDashboard } from './components/GitHubAnalysisDashboard';
 import MockContributions from './components/MockContributions';
 import CollapsibleCard from './components/CollapsibleCard';
 import ConnectionStatus from './components/ConnectionStatus';
+import Footer from './components/Footer';
 import { githubApiService } from './services/githubApiService';
 import SplashCursor from './components/SplashCursor';
 import { wagmiConfig } from './config/web3Config';
@@ -704,6 +705,9 @@ function AppContent() {
           </div>
         </main>
       )}
+
+      {/* Footer */}
+      <Footer />
 
       {/* Auth Modal */}
       <AuthModal
