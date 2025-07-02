@@ -24,7 +24,6 @@ import { githubApiService } from './services/githubApiService';
 import SplashCursor from './components/SplashCursor';
 import { wagmiConfig } from './config/web3Config';
 import { useAuthStore, AuthUser } from './store/authStore';
-import { AuthService } from './services/authService';
 import './App.css';
 
 // Production ready - debug logs removed
@@ -381,34 +380,23 @@ function AppContent() {
             {/* User Info Banner */}
             <div className="mt-4 p-4 bg-gradient-to-r from-primary-50 to-accent-50 border border-primary-200 rounded-lg">
               <div className="flex items-center space-x-3">
-                {user.githubData ? (
+                {user.type === 'github' && user.githubData ? (
                   <>
                     <img
                       src={user.githubData.avatar_url}
                       alt={user.githubData.name}
                       className="h-10 w-10 rounded-full border-2 border-white"
                     />
-                    <div className="flex-1">
+                    <div>
                       <p className="font-medium text-karma-900">
                         Connected as {user.githubData.name}
                       </p>
-                      <div className="flex items-center space-x-2 text-sm text-karma-600">
-                        <span>@{user.githubData.username}</span>
-                        {user.type === 'combined' ? (
-                          <>
-                            <span>•</span>
-                            <span className="font-mono">{user.walletAddress?.slice(0, 6)}...{user.walletAddress?.slice(-4)}</span>
-                            <span className="inline-flex items-center bg-accent-100 text-accent-700 px-2 py-1 rounded-full text-xs font-medium">
-                              ✨ Dual Verified
-                            </span>
-                          </>
-                        ) : (
-                          <span>• GitHub Only</span>
-                        )}
-                      </div>
+                      <p className="text-sm text-karma-600">
+                        @{user.githubData.username} • GitHub Account
+                      </p>
                     </div>
                   </>
-                ) : user.walletAddress ? (
+                ) : (
                   <>
                     <div className="h-10 w-10 bg-primary-100 rounded-full flex items-center justify-center">
                       <ShieldCheckIcon className="h-5 w-5 text-primary-600" />
@@ -418,21 +406,7 @@ function AppContent() {
                         Connected Wallet
                       </p>
                       <p className="text-sm text-karma-600 font-mono">
-                        {user.walletAddress.slice(0, 6)}...{user.walletAddress.slice(-4)} • Wallet Only
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center">
-                      <ShieldCheckIcon className="h-5 w-5 text-gray-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-karma-900">
-                        Anonymous User
-                      </p>
-                      <p className="text-sm text-karma-600">
-                        No connections available
+                        {user.walletAddress?.slice(0, 6)}...{user.walletAddress?.slice(-4)}
                       </p>
                     </div>
                   </>
@@ -442,15 +416,15 @@ function AppContent() {
           </div>
 
           {/* 1. Karma Dashboard - First and non-collapsible */}
-          <div className="mb-8">
-            <KarmaCard
-              user={user}
-              showRealTimeData={true}
-            />
-          </div>
+                      <div className="mb-8">
+              <KarmaCard
+                user={user}
+                showRealTimeData={true}
+              />
+            </div>
 
           {/* 2. GitHub Connection Status */}
-          {!user.githubData && (
+          {user.type !== 'github' && (
             <div className="mb-8">
               <CollapsibleCard
                 title="GitHub Integration"
@@ -458,22 +432,10 @@ function AppContent() {
                 defaultExpanded={false}
               >
                 <div className="text-center py-8">
-                  <h3 className="text-lg font-medium text-slate-900 mb-2">
-                    {user.walletAddress ? 'Connect GitHub to Boost Your Score' : 'Connect GitHub for Analytics'}
-                  </h3>
-                  <p className="text-slate-600">
-                    {user.walletAddress 
-                      ? 'Add GitHub to your wallet profile for maximum karma and trust scores!'
-                      : 'Connect your GitHub account to see detailed contribution analytics.'
-                    }
-                  </p>
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">Connect GitHub for Analytics</h3>
+                  <p className="text-slate-600">Connect your GitHub account to see detailed contribution analytics.</p>
                   <div className="mt-4 text-sm text-slate-500">
-                    Current authentication: {user.type === 'wallet' ? 'Wallet connected' : 'Not authenticated'}
-                    {user.walletAddress && (
-                      <div className="mt-2 text-accent-600 font-medium">
-                        🎯 Combined profiles get +10-15 karma bonus!
-                      </div>
-                    )}
+                    Current authentication: {user.type || 'Not authenticated'}
                   </div>
                   <button
                     onClick={() => setShowAuthModal(true)}
@@ -486,8 +448,8 @@ function AppContent() {
             </div>
           )}
 
-          {/* 3. Real GitHub Profile Data - For all users with GitHub connected */}
-          {user.githubData && (
+          {/* 3. Real GitHub Profile Data - For GitHub users only */}
+          {user.type === 'github' && user.githubData && (
             <div className="mb-8">
               <CollapsibleCard
                 title="GitHub Profile"
@@ -501,26 +463,14 @@ function AppContent() {
                       alt={user.githubData.name}
                       className="h-16 w-16 rounded-full border-2 border-white"
                     />
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h4 className="text-lg font-semibold text-karma-900">{user.githubData.name}</h4>
-                        {user.type === 'combined' && (
-                          <span className="inline-flex items-center bg-accent-100 text-accent-700 px-2 py-1 rounded-full text-xs font-medium">
-                            🔗 Combined Profile
-                          </span>
-                        )}
-                      </div>
+                    <div>
+                      <h4 className="text-lg font-semibold text-karma-900">{user.githubData.name}</h4>
                       <p className="text-karma-600">@{user.githubData.username}</p>
                       <p className="text-sm text-karma-500 mt-1">
                         Public repos: {user.githubData.public_repos} • Followers: {user.githubData.followers}
                       </p>
-                      {user.walletAddress && (
-                        <p className="text-xs text-primary-600 font-mono mt-1">
-                          Wallet: {user.walletAddress.slice(0, 6)}...{user.walletAddress.slice(-4)}
-                        </p>
-                      )}
                     </div>
-                  </div>
+                                     </div>
                 </div>
               </CollapsibleCard>
             </div>
@@ -772,135 +722,6 @@ function App() {
       </QueryClientProvider>
     </ErrorBoundary>
   );
-}
-
-// Global debug helper for OAuth issues
-if (typeof window !== 'undefined') {
-  (window as any).umikarmaDebug = {
-    clearOAuthState: () => {
-      // Clean up any OAuth-related localStorage items
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('github_oauth_processing_') || key.startsWith('github_oauth_callback_')) {
-          localStorage.removeItem(key);
-        }
-      });
-      
-      // Clean up sessionStorage OAuth items
-      Object.keys(sessionStorage).forEach(key => {
-        if (key.startsWith('github_oauth_session_')) {
-          sessionStorage.removeItem(key);
-        }
-      });
-      
-      // Clean up URL parameters if they exist
-      if (window.location.search.includes('code=') || window.location.search.includes('state=')) {
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-      
-      console.log('🔧 OAuth state cleared. Try connecting again.');
-    },
-    getCurrentUser: () => {
-      const user = useAuthStore.getState().user;
-      console.log('👤 Current user:', user);
-      return user;
-    },
-    logout: () => {
-      useAuthStore.getState().logout();
-      
-      // Clean up any OAuth-related localStorage items
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('github_oauth_processing_') || key.startsWith('github_oauth_callback_')) {
-          localStorage.removeItem(key);
-        }
-      });
-      
-      // Clean up sessionStorage OAuth items
-      Object.keys(sessionStorage).forEach(key => {
-        if (key.startsWith('github_oauth_session_')) {
-          sessionStorage.removeItem(key);
-        }
-      });
-      
-      // Clean up URL parameters if they exist
-      if (window.location.search.includes('code=') || window.location.search.includes('state=')) {
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-      
-      console.log('👋 Logged out and cleared all state.');
-    },
-    troubleshoot: () => {
-      console.log('🔍 UmiKarma OAuth Troubleshooter:');
-      
-      // Check storage permissions
-      try {
-        const testKey = 'storage_test';
-        const testValue = Date.now().toString();
-        localStorage.setItem(testKey, testValue);
-        const retrieved = localStorage.getItem(testKey);
-        localStorage.removeItem(testKey);
-        
-        if (retrieved === testValue) {
-          console.log('✅ localStorage: Working properly');
-        } else {
-          console.error('❌ localStorage: Not working correctly! Values don\'t match');
-        }
-      } catch (e) {
-        console.error('❌ localStorage: Permission denied or disabled', e);
-      }
-      
-      try {
-        const testKey = 'session_test';
-        const testValue = Date.now().toString();
-        sessionStorage.setItem(testKey, testValue);
-        const retrieved = sessionStorage.getItem(testKey);
-        sessionStorage.removeItem(testKey);
-        
-        if (retrieved === testValue) {
-          console.log('✅ sessionStorage: Working properly');
-        } else {
-          console.error('❌ sessionStorage: Not working correctly! Values don\'t match');
-        }
-      } catch (e) {
-        console.error('❌ sessionStorage: Permission denied or disabled', e);
-      }
-      
-      // Check URL parameters
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get('code');
-      const state = params.get('state');
-      
-      console.log('🔍 URL Parameters:', { 
-        code: code ? `${code.substring(0, 5)}...` : 'not found', 
-        state: state ? `${state.substring(0, 5)}...` : 'not found'
-      });
-      
-      // Check OAuth processing flags
-      const processingKeys = Object.keys(localStorage)
-        .filter(key => key.startsWith('github_oauth_processing_'));
-      
-      const callbackKeys = Object.keys(localStorage)
-        .filter(key => key.startsWith('github_oauth_callback_'));
-      
-      const sessionKeys = Object.keys(sessionStorage)
-        .filter(key => key.startsWith('github_oauth_session_'));
-      
-      console.log('🔍 OAuth Processing Flags:', { 
-        processingKeys, 
-        callbackKeys,
-        sessionKeys
-      });
-      
-      return {
-        storageWorking: {
-          localStorage: !!localStorage,
-          sessionStorage: !!sessionStorage
-        },
-        urlParams: { code, state },
-        oauthFlags: { processingKeys, callbackKeys, sessionKeys }
-      };
-    }
-  };
-  console.log('🛠️ Debug helpers available: umikarmaDebug.clearOAuthState(), umikarmaDebug.getCurrentUser(), umikarmaDebug.logout(), umikarmaDebug.troubleshoot()');
 }
 
 export default App;
