@@ -19,18 +19,20 @@ const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
-    <div className={`clean-card ${className}`}>
+    <div className={`${className.includes('demo-card') ? 'demo-card' : 'clean-card'} ${className}`}>
       {/* Header - Clickable */}
       <div 
-        className="flex items-center justify-between cursor-pointer mb-6"
+        className="collapsible-header flex items-center justify-between cursor-pointer mb-6 p-3 -m-3"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center space-x-3">
-          {icon}
-          <h3 className="text-2xl font-bold text-karma-900">{title}</h3>
+          <div className="icon-glow">
+            {icon}
+          </div>
+          <h3 className={`text-2xl font-bold ${className.includes('demo-card') ? 'text-purple-900' : 'text-karma-900'}`}>{title}</h3>
         </div>
         
-        <button className="text-karma-400 hover:text-karma-600 transition-colors">
+        <button className={`${className.includes('demo-card') ? 'text-purple-400 hover:text-purple-600' : 'text-karma-400 hover:text-karma-600'} transition-all duration-300 hover:scale-110`}>
           {isExpanded ? (
             <ChevronUpIcon className="h-5 w-5" />
           ) : (

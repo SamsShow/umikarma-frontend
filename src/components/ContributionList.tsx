@@ -8,12 +8,11 @@ import {
   ArrowPathIcon,
   LinkIcon,
   ExclamationCircleIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
   ChevronLeftIcon,
   ChevronRightIcon
 } from '@heroicons/react/24/outline';
 import { githubApiService, ContributionActivity } from '../services/githubApiService';
+import CollapsibleCard from './CollapsibleCard';
 
 interface ContributionData {
   type: 'github' | 'dao' | 'forum';
@@ -48,17 +47,17 @@ const PaginationControls: React.FC<{
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="p-2 rounded-lg border border-karma-300 hover:bg-karma-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="pagination-btn"
         >
           <ChevronLeftIcon className="h-4 w-4" />
         </button>
-        <span className="px-3 py-1 text-sm font-medium text-karma-700">
+        <span className="px-4 py-2 text-sm font-semibold text-karma-700 bg-white/80 backdrop-blur-sm rounded-xl border border-karma-200/50">
           {currentPage}
         </span>
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="p-2 rounded-lg border border-karma-300 hover:bg-karma-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="pagination-btn"
         >
           <ChevronRightIcon className="h-4 w-4" />
         </button>
@@ -77,9 +76,14 @@ const ContributionList: React.FC<ContributionListProps> = ({
   const [githubActivities, setGithubActivities] = useState<ContributionActivity[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(5);
+  const [itemsPerPage] = useState(3);
+
+  // Utility function to truncate text
+  const truncateText = (text: string, maxLength: number = 120) => {
+    if (text.length <= maxLength) return text;
+    return text.slice(0, maxLength).trim() + '...';
+  };
 
   // Fetch GitHub activities if enabled
   useEffect(() => {
@@ -178,73 +182,49 @@ const ContributionList: React.FC<ContributionListProps> = ({
   };
 
   return (
-    <div className="clean-card">
-      {/* Header - Collapsible */}
-      <div 
-        className={`flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 ${
-          isCollapsible ? 'cursor-pointer' : ''
-        }`}
-        onClick={() => isCollapsible && setIsExpanded(!isExpanded)}
-      >
-        <div className="mb-4 sm:mb-0">
-          <div className="flex items-center space-x-3">
-            <SparklesIcon className="h-6 w-6 text-karma-600" />
-            <h3 className="text-2xl font-bold text-karma-900">Recent Contributions</h3>
-            {isCollapsible && (
-              <button className="text-karma-400 hover:text-karma-600">
-                {isExpanded ? (
-                  <ChevronUpIcon className="h-5 w-5" />
-                ) : (
-                  <ChevronDownIcon className="h-5 w-5" />
-                )}
-              </button>
-            )}
-          </div>
+    <CollapsibleCard
+      title="Recent Contributions"
+      icon={<SparklesIcon className="h-6 w-6 text-karma-600" />}
+      defaultExpanded={defaultExpanded}
+    >
+      {/* Subtitle and controls */}
+      <div className="mb-6">
+        {showRealTimeData && githubUsername && (
+          <p className="text-sm text-karma-600 mb-3">
+            {githubActivities.length > 0 
+              ? `Showing live data from @${githubUsername}` 
+              : 'GitHub data will appear here when available'
+            }
+          </p>
+        )}
+        
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-karma-600 bg-karma-100/70 backdrop-blur-sm px-3 py-1 rounded-full border border-karma-200/50">
+            {displayContributions.length} activities
+          </span>
+          
           {showRealTimeData && githubUsername && (
-            <p className="text-sm text-karma-600 mt-1">
-              {githubActivities.length > 0 
-                ? `Showing live data from @${githubUsername}` 
-                : 'GitHub data will appear here when available'
-              }
-            </p>
+            <button
+              onClick={fetchGitHubActivities}
+              disabled={isLoading}
+              className="inline-flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 disabled:opacity-50 transition-all duration-300"
+            >
+              <ArrowPathIcon className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+              {isLoading ? 'Loading...' : 'Refresh'}
+            </button>
           )}
         </div>
-        
-        {isExpanded && (
-          <div className="flex items-center space-x-3">
-            <span className="text-sm text-karma-600 bg-karma-100 px-3 py-1 rounded-full">
-              {displayContributions.length} activities
-            </span>
-            
-            {showRealTimeData && githubUsername && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation(); // Prevent collapse when clicking refresh
-                  fetchGitHubActivities();
-                }}
-                disabled={isLoading}
-                className="inline-flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"
-              >
-                <ArrowPathIcon className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
-                {isLoading ? 'Loading...' : 'Refresh'}
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Content - Only show when expanded */}
-      {isExpanded && (
-        <>
-          {/* Error Display */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
-              <ExclamationCircleIcon className="h-5 w-5 text-red-600 mr-2" />
-              <span className="text-red-800 text-sm">{error}</span>
-            </div>
-          )}
+      {/* Error Display */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
+          <ExclamationCircleIcon className="h-5 w-5 text-red-600 mr-2" />
+          <span className="text-red-800 text-sm">{error}</span>
+        </div>
+      )}
 
-          <div className="space-y-6">
+             <div className="space-y-6">
             {paginatedContributions.map((activity, index) => {
               // Find corresponding GitHub activity for additional data
               const githubActivity = githubActivities.find(ga => 
@@ -252,7 +232,7 @@ const ContributionList: React.FC<ContributionListProps> = ({
               );
               
               return (
-                <div key={index} className="border border-karma-200 rounded-xl p-6 hover:shadow-soft transition-all duration-300 hover:border-karma-300">
+                <div key={index} className="contribution-item">
                   <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-4">
                     <div className="flex items-start space-x-4 flex-1">
                       <div className="p-3 bg-karma-50 rounded-xl border border-karma-200 flex-shrink-0">
@@ -260,7 +240,7 @@ const ContributionList: React.FC<ContributionListProps> = ({
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <h4 className="font-semibold text-karma-900 text-lg">{activity.title}</h4>
+                          <h4 className="font-semibold text-karma-900 text-lg">{truncateText(activity.title, 80)}</h4>
                           <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getTypeBadge(activity.type)}`}>
                             {activity.type.toUpperCase()}
                           </span>
@@ -290,7 +270,7 @@ const ContributionList: React.FC<ContributionListProps> = ({
                           </div>
                         )}
                         
-                        <p className="text-karma-700 mb-3 leading-relaxed">{activity.description}</p>
+                        <p className="text-karma-700 mb-3 leading-relaxed">{truncateText(activity.description)}</p>
                         
                         {/* Languages for GitHub activities */}
                         {githubActivity?.languages && githubActivity.languages.length > 0 && (
@@ -323,7 +303,7 @@ const ContributionList: React.FC<ContributionListProps> = ({
                         <SparklesIcon className="h-5 w-5 text-primary-600 mt-0.5 flex-shrink-0" />
                         <div>
                           <h5 className="font-medium text-primary-900 mb-2">AI Analysis</h5>
-                          <p className="text-primary-800 text-sm leading-relaxed">{activity.aiSummary}</p>
+                          <p className="text-primary-800 text-sm leading-relaxed">{truncateText(activity.aiSummary, 150)}</p>
                         </div>
                       </div>
                     </div>
@@ -340,20 +320,18 @@ const ContributionList: React.FC<ContributionListProps> = ({
             onPageChange={setCurrentPage}
           />
 
-          {displayContributions.length === 0 && !isLoading && (
-            <div className="text-center py-12">
-              <UserIcon className="h-16 w-16 mx-auto text-karma-400 mb-4" />
-              <h3 className="text-lg font-medium text-karma-900 mb-2">No contributions yet</h3>
-              <p className="text-karma-600">
-                {showRealTimeData && githubUsername
-                  ? 'No GitHub activities found for this user.'
-                  : 'Start contributing to see your activities here.'}
-              </p>
-            </div>
-          )}
-        </>
+      {displayContributions.length === 0 && !isLoading && (
+        <div className="text-center py-12">
+          <UserIcon className="h-16 w-16 mx-auto text-karma-400 mb-4" />
+          <h3 className="text-lg font-medium text-karma-900 mb-2">No contributions yet</h3>
+          <p className="text-karma-600">
+            {showRealTimeData && githubUsername
+              ? 'No GitHub activities found for this user.'
+              : 'Start contributing to see your activities here.'}
+          </p>
+        </div>
       )}
-    </div>
+    </CollapsibleCard>
   );
 };
 

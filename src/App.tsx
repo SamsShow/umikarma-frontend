@@ -300,7 +300,7 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation Header */}
-      <nav className="border-b border-karma-100 bg-white">
+      <nav className="navbar-glass sticky top-0 z-50">
         <div className="container-custom">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-6">
@@ -482,192 +482,198 @@ function AppContent() {
             </div>
           )}
 
-          {/* 4. Demo Contributions */}
-          <div className="mb-8">
-            <MockContributions defaultExpanded={true} />
+          {/* 4. Contributions Row - Demo & Real Side by Side */}
+          <div className="mb-8 grid grid-cols-1 xl:grid-cols-2 gap-8">
+            {/* Demo Contributions */}
+            <div className="xl:min-h-0">
+              <MockContributions defaultExpanded={true} />
+            </div>
+
+            {/* Real Contributions */}
+            <div className="xl:min-h-0">
+              <ContributionList 
+                contributions={getMockContributions(user)} 
+                githubUsername={user.githubData?.username}
+                showRealTimeData={true}
+                isCollapsible={true}
+                defaultExpanded={true}
+              />
+            </div>
           </div>
 
-          {/* 5. Real Contributions */}
-          <div className="mb-8">
-            <ContributionList 
-              contributions={getMockContributions(user)} 
-              githubUsername={user.githubData?.username}
-              showRealTimeData={true}
-              isCollapsible={true}
-              defaultExpanded={true}
-            />
-          </div>
-
-          {/* 6. DAO Access Control */}
-          <div className="mb-8">
-            <CollapsibleCard
-              title="DAO Access Control"
-              icon={<ShieldCheckIcon className="h-6 w-6 text-karma-600" />}
-              defaultExpanded={true}
-            >
-              <div className="space-y-4">
-                {/* DAO Y Proposals - Requires 70+ */}
-                <div className={`border rounded-xl p-4 ${
-                  getCurrentKarmaScore() >= 70 
-                    ? 'border-accent-200 bg-accent-50' 
-                    : 'border-red-200 bg-red-50'
-                }`}>
-                  <div className="flex items-center space-x-3 mb-2">
-                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
-                      getCurrentKarmaScore() >= 70 
-                        ? 'bg-accent-500' 
-                        : 'bg-red-500'
-                    }`}>
-                      <ShieldCheckIcon className="h-4 w-4 text-white" />
-                    </div>
-                    <div>
-                      <div className={`font-medium ${
-                        getCurrentKarmaScore() >= 70 
-                          ? 'text-accent-800' 
-                          : 'text-red-800'
-                      }`}>
-                        {getCurrentKarmaScore() >= 70 ? 'Access Granted' : 'Access Denied'}
-                      </div>
-                      <div className={`text-xs ${
-                        getCurrentKarmaScore() >= 70 
-                          ? 'text-accent-700' 
-                          : 'text-red-700'
-                      }`}>
-                        DAO Y Proposals
-                      </div>
-                    </div>
-                  </div>
-                  <p className={`text-sm ${
+          {/* 5. DAO & Developer Row - Side by Side */}
+          <div className="mb-8 grid grid-cols-1 xl:grid-cols-2 gap-8">
+            {/* DAO Access Control */}
+            <div className="xl:min-h-0">
+              <CollapsibleCard
+                title="DAO Access Control"
+                icon={<ShieldCheckIcon className="h-6 w-6 text-karma-600" />}
+                defaultExpanded={true}
+              >
+                <div className="space-y-4">
+                  {/* DAO Y Proposals - Requires 70+ */}
+                  <div className={`rounded-2xl p-6 ${
                     getCurrentKarmaScore() >= 70 
-                      ? 'text-accent-700' 
-                      : 'text-red-700'
+                      ? 'dao-card-granted' 
+                      : 'dao-card-denied'
                   }`}>
-                    Minimum required: 70/100 • Your score: {getCurrentKarmaScore()}/100
-                  </p>
-                </div>
-                
-                {/* TechDAO Council - Requires 80+ */}
-                <div className={`border rounded-xl p-4 ${
-                  getCurrentKarmaScore() >= 80 
-                    ? 'border-accent-200 bg-accent-50' 
-                    : 'border-red-200 bg-red-50'
-                }`}>
-                  <div className="flex items-center space-x-3 mb-2">
-                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
-                      getCurrentKarmaScore() >= 80 
-                        ? 'bg-accent-500' 
-                        : 'bg-red-500'
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
+                        getCurrentKarmaScore() >= 70 
+                          ? 'bg-accent-500' 
+                          : 'bg-red-500'
+                      }`}>
+                        <ShieldCheckIcon className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <div className={`font-medium ${
+                          getCurrentKarmaScore() >= 70 
+                            ? 'text-accent-800' 
+                            : 'text-red-800'
+                        }`}>
+                          {getCurrentKarmaScore() >= 70 ? 'Access Granted' : 'Access Denied'}
+                        </div>
+                        <div className={`text-xs ${
+                          getCurrentKarmaScore() >= 70 
+                            ? 'text-accent-700' 
+                            : 'text-red-700'
+                        }`}>
+                          DAO Y Proposals
+                        </div>
+                      </div>
+                    </div>
+                    <p className={`text-sm ${
+                      getCurrentKarmaScore() >= 70 
+                        ? 'text-accent-700' 
+                        : 'text-red-700'
                     }`}>
-                      <ShieldCheckIcon className="h-4 w-4 text-white" />
-                    </div>
-                    <div>
-                      <div className={`font-medium ${
-                        getCurrentKarmaScore() >= 80 
-                          ? 'text-accent-800' 
-                          : 'text-red-800'
-                      }`}>
-                        {getCurrentKarmaScore() >= 80 ? 'Access Granted' : 'Access Denied'}
-                      </div>
-                      <div className={`text-xs ${
-                        getCurrentKarmaScore() >= 80 
-                          ? 'text-accent-700' 
-                          : 'text-red-700'
-                      }`}>
-                        TechDAO Council
-                      </div>
-                    </div>
+                      Minimum required: 70/100 • Your score: {getCurrentKarmaScore()}/100
+                    </p>
                   </div>
-                  <p className={`text-sm ${
+                  
+                  {/* TechDAO Council - Requires 80+ */}
+                  <div className={`rounded-2xl p-6 ${
                     getCurrentKarmaScore() >= 80 
-                      ? 'text-accent-700' 
-                      : 'text-red-700'
+                      ? 'dao-card-granted' 
+                      : 'dao-card-denied'
                   }`}>
-                    Minimum required: 80/100 • Your score: {getCurrentKarmaScore()}/100
-                  </p>
-                </div>
-                
-                {/* EliteDAO Treasury - Requires 90+ */}
-                <div className={`border rounded-xl p-4 ${
-                  getCurrentKarmaScore() >= 90 
-                    ? 'border-accent-200 bg-accent-50' 
-                    : 'border-yellow-200 bg-yellow-50'
-                }`}>
-                  <div className="flex items-center space-x-3 mb-2">
-                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
-                      getCurrentKarmaScore() >= 90 
-                        ? 'bg-accent-500' 
-                        : 'bg-yellow-500'
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
+                        getCurrentKarmaScore() >= 80 
+                          ? 'bg-accent-500' 
+                          : 'bg-red-500'
+                      }`}>
+                        <ShieldCheckIcon className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <div className={`font-medium ${
+                          getCurrentKarmaScore() >= 80 
+                            ? 'text-accent-800' 
+                            : 'text-red-800'
+                        }`}>
+                          {getCurrentKarmaScore() >= 80 ? 'Access Granted' : 'Access Denied'}
+                        </div>
+                        <div className={`text-xs ${
+                          getCurrentKarmaScore() >= 80 
+                            ? 'text-accent-700' 
+                            : 'text-red-700'
+                        }`}>
+                          TechDAO Council
+                        </div>
+                      </div>
+                    </div>
+                    <p className={`text-sm ${
+                      getCurrentKarmaScore() >= 80 
+                        ? 'text-accent-700' 
+                        : 'text-red-700'
                     }`}>
-                      <ShieldCheckIcon className="h-4 w-4 text-white" />
-                    </div>
-                    <div>
-                      <div className={`font-medium ${
-                        getCurrentKarmaScore() >= 90 
-                          ? 'text-accent-800' 
-                          : 'text-yellow-800'
-                      }`}>
-                        {getCurrentKarmaScore() >= 90 ? 'Access Granted' : 'Pending Review'}
-                      </div>
-                      <div className={`text-xs ${
-                        getCurrentKarmaScore() >= 90 
-                          ? 'text-accent-700' 
-                          : 'text-yellow-700'
-                      }`}>
-                        EliteDAO Treasury
-                      </div>
-                    </div>
+                      Minimum required: 80/100 • Your score: {getCurrentKarmaScore()}/100
+                    </p>
                   </div>
-                  <p className={`text-sm ${
+                  
+                  {/* EliteDAO Treasury - Requires 90+ */}
+                  <div className={`rounded-2xl p-6 ${
                     getCurrentKarmaScore() >= 90 
-                      ? 'text-accent-700' 
-                      : 'text-yellow-700'
+                      ? 'dao-card-granted' 
+                      : 'dao-card-pending'
                   }`}>
-                    Minimum required: 90/100 • Your score: {getCurrentKarmaScore()}/100
-                  </p>
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
+                        getCurrentKarmaScore() >= 90 
+                          ? 'bg-accent-500' 
+                          : 'bg-yellow-500'
+                      }`}>
+                        <ShieldCheckIcon className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <div className={`font-medium ${
+                          getCurrentKarmaScore() >= 90 
+                            ? 'text-accent-800' 
+                            : 'text-yellow-800'
+                        }`}>
+                          {getCurrentKarmaScore() >= 90 ? 'Access Granted' : 'Pending Review'}
+                        </div>
+                        <div className={`text-xs ${
+                          getCurrentKarmaScore() >= 90 
+                            ? 'text-accent-700' 
+                            : 'text-yellow-700'
+                        }`}>
+                          EliteDAO Treasury
+                        </div>
+                      </div>
+                    </div>
+                    <p className={`text-sm ${
+                      getCurrentKarmaScore() >= 90 
+                        ? 'text-accent-700' 
+                        : 'text-yellow-700'
+                    }`}>
+                      Minimum required: 90/100 • Your score: {getCurrentKarmaScore()}/100
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </CollapsibleCard>
-          </div>
+              </CollapsibleCard>
+            </div>
 
-          {/* 7. Developer Integration */}
-          <div className="mb-8">
-            <CollapsibleCard
-              title="Developer Integration"
-              icon={<CodeBracketIcon className="h-6 w-6 text-karma-600" />}
-              defaultExpanded={true}
-            >
-              <div className="bg-karma-50 border border-karma-200 rounded-xl p-6">
-                <h4 className="font-semibold text-karma-900 mb-3">SDK Example</h4>
-                <div className="bg-karma-900 rounded-lg p-4 text-sm font-mono text-white overflow-x-auto">
-                  <div className="text-accent-400">{'// Verify user reputation'}</div>
-                  <div className="text-white">
-                    <div>const karma = await umiKarma</div>
-                    <div>&nbsp;&nbsp;.getUser('{user.walletAddress?.slice(0, 8) || user.id.slice(0, 8)}...')</div>
-                    <div>&nbsp;&nbsp;.getScore();</div>
-                    <div><br /></div>
-                    <div>if (karma &gt;= 70) {'{'}</div>
-                    <div>&nbsp;&nbsp;<span className="text-accent-300">{'// Grant access'}</span></div>
-                    <div>&nbsp;&nbsp;allowProposalSubmission();</div>
-                    <div>{'}'}</div>
+            {/* Developer Integration */}
+            <div className="xl:min-h-0">
+              <CollapsibleCard
+                title="Developer Integration"
+                icon={<CodeBracketIcon className="h-6 w-6 text-karma-600" />}
+                defaultExpanded={true}
+              >
+                <div className="bg-karma-50 border border-karma-200 rounded-xl p-6">
+                  <h4 className="font-semibold text-karma-900 mb-3">SDK Example</h4>
+                  <div className="bg-karma-900 rounded-lg p-4 text-sm font-mono text-white overflow-x-auto">
+                    <div className="text-accent-400">{'// Verify user reputation'}</div>
+                    <div className="text-white">
+                      <div>const karma = await umiKarma</div>
+                      <div>&nbsp;&nbsp;.getUser('{user.walletAddress?.slice(0, 8) || user.id.slice(0, 8)}...')</div>
+                      <div>&nbsp;&nbsp;.getScore();</div>
+                      <div><br /></div>
+                      <div>if (karma &gt;= 70) {'{'}</div>
+                      <div>&nbsp;&nbsp;<span className="text-accent-300">{'// Grant access'}</span></div>
+                      <div>&nbsp;&nbsp;allowProposalSubmission();</div>
+                      <div>{'}'}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 space-y-2 text-sm text-karma-600">
+                    <div className="flex items-center space-x-2">
+                      <div className="h-2 w-2 bg-accent-500 rounded-full"></div>
+                      <span>REST API at <code className="bg-karma-200 px-1 rounded text-karma-800">api.umikarma.xyz</code></span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="h-2 w-2 bg-accent-500 rounded-full"></div>
+                      <span>SDKs for JavaScript, Python, Rust</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="h-2 w-2 bg-accent-500 rounded-full"></div>
+                      <span>Real-time webhooks for score updates</span>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="mt-4 space-y-2 text-sm text-karma-600">
-                  <div className="flex items-center space-x-2">
-                    <div className="h-2 w-2 bg-accent-500 rounded-full"></div>
-                    <span>REST API at <code className="bg-karma-200 px-1 rounded text-karma-800">api.umikarma.xyz</code></span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="h-2 w-2 bg-accent-500 rounded-full"></div>
-                    <span>SDKs for JavaScript, Python, Rust</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="h-2 w-2 bg-accent-500 rounded-full"></div>
-                    <span>Real-time webhooks for score updates</span>
-                  </div>
-                </div>
-              </div>
-            </CollapsibleCard>
+              </CollapsibleCard>
+            </div>
           </div>
 
           {/* 8. Future Features */}
@@ -677,21 +683,21 @@ function AppContent() {
               icon={<RocketLaunchIcon className="h-6 w-6 text-karma-600" />}
               defaultExpanded={true}
             >
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="text-center p-6 bg-gradient-to-br from-primary-50 to-accent-50 border border-primary-200 rounded-xl">
-                  <div className="text-3xl mb-3">🔐</div>
-                  <h4 className="font-semibold text-primary-900 mb-2">ZK Proofs</h4>
-                  <p className="text-primary-700 text-sm">Verify reputation without revealing identity details</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="gradient-card-blue text-center floating-element">
+                  <div className="text-4xl mb-4">🔐</div>
+                  <h4 className="font-bold text-blue-900 mb-3 text-lg">ZK Proofs</h4>
+                  <p className="text-blue-800 text-sm leading-relaxed">Verify reputation without revealing identity details</p>
                 </div>
-                <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl">
-                  <div className="text-3xl mb-3">🌐</div>
-                  <h4 className="font-semibold text-purple-900 mb-2">Social Integration</h4>
-                  <p className="text-purple-700 text-sm">Lens Protocol & Farcaster reputation tracking</p>
+                <div className="gradient-card-pink text-center floating-element" style={{animationDelay: '2s'}}>
+                  <div className="text-4xl mb-4">🌐</div>
+                  <h4 className="font-bold text-purple-900 mb-3 text-lg">Social Integration</h4>
+                  <p className="text-purple-800 text-sm leading-relaxed">Lens Protocol & Farcaster reputation tracking</p>
                 </div>
-                <div className="text-center p-6 bg-gradient-to-br from-accent-50 to-green-50 border border-accent-200 rounded-xl">
-                  <div className="text-3xl mb-3">🏆</div>
-                  <h4 className="font-semibold text-accent-900 mb-2">Dynamic NFTs</h4>
-                  <p className="text-accent-700 text-sm">Reputation badges that evolve with your karma</p>
+                <div className="gradient-card-green text-center floating-element" style={{animationDelay: '4s'}}>
+                  <div className="text-4xl mb-4">🏆</div>
+                  <h4 className="font-bold text-emerald-900 mb-3 text-lg">Dynamic NFTs</h4>
+                  <p className="text-emerald-800 text-sm leading-relaxed">Reputation badges that evolve with your karma</p>
                 </div>
               </div>
             </CollapsibleCard>

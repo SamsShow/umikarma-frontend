@@ -3,12 +3,11 @@ import {
   EyeIcon,
   CodeBracketIcon,
   ChartBarIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
   SparklesIcon,
   ChevronLeftIcon,
   ChevronRightIcon
 } from '@heroicons/react/24/outline';
+import CollapsibleCard from './CollapsibleCard';
 
 interface MockContributionData {
   type: 'github' | 'dao' | 'forum';
@@ -42,17 +41,17 @@ const PaginationControls: React.FC<{
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="p-2 rounded-lg border border-purple-300 hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="pagination-btn"
         >
           <ChevronLeftIcon className="h-4 w-4" />
         </button>
-        <span className="px-3 py-1 text-sm font-medium text-purple-700">
+        <span className="px-4 py-2 text-sm font-semibold text-purple-700 bg-white/80 backdrop-blur-sm rounded-xl border border-purple-200/50">
           {currentPage}
         </span>
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="p-2 rounded-lg border border-purple-300 hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="pagination-btn"
         >
           <ChevronRightIcon className="h-4 w-4" />
         </button>
@@ -65,9 +64,14 @@ const MockContributions: React.FC<MockContributionsProps> = ({
   isCollapsible = true,
   defaultExpanded = true
 }) => {
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(5);
+  const [itemsPerPage] = useState(3);
+
+  // Utility function to truncate text
+  const truncateText = (text: string, maxLength: number = 120) => {
+    if (text.length <= maxLength) return text;
+    return text.slice(0, maxLength).trim() + '...';
+  };
 
   const mockContributions: MockContributionData[] = [
     {
@@ -143,132 +147,110 @@ const MockContributions: React.FC<MockContributionsProps> = ({
   };
 
   return (
-    <div className="clean-card border-purple-200 bg-gradient-to-r from-purple-50 to-purple-100">
-      {/* Header - Collapsible */}
-      <div 
-        className={`flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 ${
-          isCollapsible ? 'cursor-pointer' : ''
-        }`}
-        onClick={() => isCollapsible && setIsExpanded(!isExpanded)}
-      >
-        <div className="mb-4 sm:mb-0">
-          <div className="flex items-center space-x-3">
-            <EyeIcon className="h-6 w-6 text-purple-600" />
-            <h3 className="text-2xl font-bold text-purple-900">🎭 Demo Contributions</h3>
-            {isCollapsible && (
-              <button className="text-purple-400 hover:text-purple-600">
-                {isExpanded ? (
-                  <ChevronUpIcon className="h-5 w-5" />
-                ) : (
-                  <ChevronDownIcon className="h-5 w-5" />
-                )}
-              </button>
-            )}
-          </div>
-          <p className="text-sm text-purple-700 mt-1">
-            Example blockchain contributions showing UmiKarma analysis
-          </p>
+    <CollapsibleCard
+      title="Demo Contributions"
+      icon={<EyeIcon className="h-6 w-6 text-purple-600" />}
+      defaultExpanded={defaultExpanded}
+      className="demo-card p-8"
+    >
+      {/* Subtitle with activity count */}
+      <div className="mb-6">
+        <p className="text-sm text-purple-700 mb-3">
+          Example blockchain contributions showing UmiKarma analysis
+        </p>
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-purple-700 bg-purple-100/70 backdrop-blur-sm px-3 py-1 rounded-full border border-purple-200/50">
+            {mockContributions.length} demo activities
+          </span>
         </div>
-        
-        {isExpanded && (
-          <div className="flex items-center space-x-3">
-            <span className="text-sm text-purple-700 bg-purple-200 px-3 py-1 rounded-full">
-              {mockContributions.length} demo activities
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Demo Banner */}
-      {isExpanded && (
-        <div className="mb-6 p-4 bg-purple-100 border border-purple-300 rounded-lg">
-          <div className="flex items-center space-x-2">
+      <div className="mb-8 p-5 bg-purple-100/70 backdrop-blur-sm border border-purple-200/60 rounded-2xl">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-white/80 rounded-lg">
             <EyeIcon className="h-5 w-5 text-purple-600" />
-            <span className="text-purple-800 text-sm font-medium">
-              These are example contributions demonstrating how UmiKarma analyzes blockchain-focused activities.
-            </span>
           </div>
+          <span className="text-purple-800 text-sm font-medium leading-relaxed">
+            These are example contributions demonstrating how UmiKarma analyzes blockchain-focused activities.
+          </span>
         </div>
-      )}
+      </div>
 
-      {/* Content - Only show when expanded */}
-      {isExpanded && (
-        <>
-          <div className="space-y-6">
-            {paginatedContributions.map((activity, index) => (
-              <div key={index} className="border border-purple-200 rounded-xl p-6 hover:shadow-soft transition-all duration-300 hover:border-purple-300 bg-white">
-                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-4">
-                  <div className="flex items-start space-x-4 flex-1">
-                    <div className="p-3 bg-purple-50 rounded-xl border border-purple-200 flex-shrink-0">
-                      {getTypeIcon(activity.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <h4 className="font-semibold text-karma-900 text-lg">{activity.title}</h4>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getTypeBadge(activity.type)}`}>
-                          {activity.type.toUpperCase()}
-                        </span>
-                      </div>
-                      
-                      {/* Repository info */}
-                      {activity.repository && (
-                        <div className="flex items-center gap-2 mb-2 text-sm text-karma-600">
-                          <CodeBracketIcon className="h-4 w-4" />
-                          <span>{activity.repository}</span>
-                        </div>
-                      )}
-                      
-                      <p className="text-karma-700 mb-3 leading-relaxed">{activity.description}</p>
-                      
-                      {/* Languages */}
-                      {activity.languages && activity.languages.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-3">
-                          {activity.languages.map((lang, i) => (
-                            <span key={i} className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                              {lang}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center justify-between text-sm text-karma-600">
-                        <span>{formatDate(activity.date)}</span>
-                      </div>
-                    </div>
+      {/* Content */}
+      <div className="space-y-6">
+        {paginatedContributions.map((activity, index) => (
+          <div key={index} className="mock-contribution-item">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-4">
+              <div className="flex items-start space-x-4 flex-1">
+                <div className="p-3 bg-purple-50 rounded-xl border border-purple-200 flex-shrink-0">
+                  {getTypeIcon(activity.type)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <h4 className="font-semibold text-karma-900 text-lg">{activity.title}</h4>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getTypeBadge(activity.type)}`}>
+                      {activity.type.toUpperCase()}
+                    </span>
                   </div>
                   
-                  <div className="mt-4 lg:mt-0 lg:ml-6 flex-shrink-0">
-                    <div className={`inline-flex items-center px-4 py-2 rounded-lg border font-semibold ${getImpactColor(activity.impact)}`}>
-                      <span className="text-xl mr-2">{activity.impact}</span>
-                      <span className="text-sm">Impact</span>
+                  {/* Repository info */}
+                  {activity.repository && (
+                    <div className="flex items-center gap-2 mb-2 text-sm text-karma-600">
+                      <CodeBracketIcon className="h-4 w-4" />
+                      <span>{activity.repository}</span>
                     </div>
+                  )}
+                  
+                  <p className="text-karma-700 mb-3 leading-relaxed">{truncateText(activity.description)}</p>
+                  
+                  {/* Languages */}
+                  {activity.languages && activity.languages.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {activity.languages.map((lang, i) => (
+                        <span key={i} className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                          {lang}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-between text-sm text-karma-600">
+                    <span>{formatDate(activity.date)}</span>
                   </div>
                 </div>
-                
-                {activity.aiSummary && (
-                  <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 mt-4">
-                    <div className="flex items-start space-x-3">
-                      <SparklesIcon className="h-5 w-5 text-primary-600 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <h5 className="font-medium text-primary-900 mb-2">AI Analysis</h5>
-                        <p className="text-primary-800 text-sm leading-relaxed">{activity.aiSummary}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
-            ))}
+              
+              <div className="mt-4 lg:mt-0 lg:ml-6 flex-shrink-0">
+                <div className={`inline-flex items-center px-4 py-2 rounded-lg border font-semibold ${getImpactColor(activity.impact)}`}>
+                  <span className="text-xl mr-2">{activity.impact}</span>
+                  <span className="text-sm">Impact</span>
+                </div>
+              </div>
+            </div>
+            
+            {activity.aiSummary && (
+              <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 mt-4">
+                <div className="flex items-start space-x-3">
+                  <SparklesIcon className="h-5 w-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h5 className="font-medium text-primary-900 mb-2">AI Analysis</h5>
+                    <p className="text-primary-800 text-sm leading-relaxed">{truncateText(activity.aiSummary, 150)}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
+        ))}
+      </div>
 
-          {/* Pagination Controls */}
-          <PaginationControls
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
-        </>
-      )}
-    </div>
+      {/* Pagination Controls */}
+      <PaginationControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
+    </CollapsibleCard>
   );
 };
 

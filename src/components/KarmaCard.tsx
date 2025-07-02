@@ -95,7 +95,7 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
   };
 
   return (
-    <div className="clean-card mb-8">
+    <div className="karma-card-special mb-8">
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
         <div className="flex items-center space-x-6 mb-6 lg:mb-0">
@@ -183,8 +183,8 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="text-center p-6 bg-karma-50 rounded-xl border border-karma-100">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-6">
+        <div className="stat-card text-center">
           <div className="flex justify-center mb-3">
             <div className="p-3 bg-white rounded-xl shadow-soft">
               <TrophyIcon className="h-6 w-6 text-karma-700" />
@@ -201,7 +201,7 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
           )}
         </div>
         
-        <div className="text-center p-6 bg-karma-50 rounded-xl border border-karma-100">
+        <div className="stat-card text-center">
           <div className="flex justify-center mb-3">
             <div className="p-3 bg-white rounded-xl shadow-soft">
               <ShieldCheckIcon className="h-6 w-6 text-accent-600" />
@@ -218,7 +218,7 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
           )}
         </div>
         
-        <div className="text-center p-6 bg-karma-50 rounded-xl border border-karma-100">
+        <div className="stat-card text-center">
           <div className="flex justify-center mb-3">
             <div className="p-3 bg-white rounded-xl shadow-soft">
               <CodeBracketIcon className="h-6 w-6 text-primary-600" />

@@ -124,14 +124,14 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ className = '', onD
         
         {/* Status indicator dot */}
         <div className="absolute -top-1 -right-1">
-          <div className={`h-3 w-3 rounded-full border-2 border-white ${getStatusDotColor()}`} />
+          <div className={`h-3 w-3 rounded-full border-2 border-white status-indicator ${getStatusDotColor()}`} />
         </div>
       </button>
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-karma-200 z-50">
-          <div className="p-4">
+        <div className="absolute right-0 mt-2 w-80 profile-dropdown z-50">
+          <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold text-karma-900">System Status</h3>
               {getStatusIcon()}
