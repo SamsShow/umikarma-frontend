@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { UserIcon, TrophyIcon, ShieldCheckIcon, CalendarIcon, ArrowPathIcon, CodeBracketIcon, WalletIcon } from '@heroicons/react/24/outline';
+import { UserIcon, TrophyIcon, ShieldCheckIcon, CalendarIcon, ArrowPathIcon, CodeBracketIcon, WalletIcon, CubeIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { githubApiService, GitHubUserSummary } from '../services/githubApiService';
 import { AuthUser } from '../store/authStore';
+import { moveContractService, UserProfile } from '../services/moveContractService';
+import AddContributionModal from './AddContributionModal';
 
 interface KarmaCardProps {
   user: AuthUser;
@@ -13,8 +15,12 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
   showRealTimeData = false
 }) => {
   const [githubData, setGithubData] = useState<GitHubUserSummary | null>(null);
+  const [moveData, setMoveData] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMove, setIsLoadingMove] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [moveError, setMoveError] = useState<string | null>(null);
+  const [showAddContribution, setShowAddContribution] = useState(false);
 
   // Fetch real GitHub data if enabled and GitHub handle is provided
   const fetchGitHubData = useCallback(async () => {
@@ -38,34 +44,86 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
     }
   }, [user.githubData?.username]);
 
+  // Fetch Move contract data if wallet is connected
+  const fetchMoveData = useCallback(async () => {
+    if (!user.walletAddress) return;
+    
+    setIsLoadingMove(true);
+    setMoveError(null);
+    
+    try {
+      const profile = await moveContractService.getUserProfile(user.walletAddress);
+      setMoveData(profile);
+    } catch (err) {
+      setMoveError('Failed to fetch on-chain data');
+      console.error('Error fetching Move data:', err);
+    } finally {
+      setIsLoadingMove(false);
+    }
+  }, [user.walletAddress]);
+
   useEffect(() => {
     if (showRealTimeData && user.githubData?.username) {
       fetchGitHubData();
     }
   }, [showRealTimeData, user.githubData?.username, fetchGitHubData]);
 
-  // Use real GitHub data if available, otherwise fall back to user data
-  const displayData = githubData ? {
-    karmaScore: githubData.karmaScore,
-    totalContributions: githubData.totalContributions.commits + 
-                       githubData.totalContributions.pullRequests + 
-                       githubData.totalContributions.issues,
-    trustFactor: githubData.trustFactor,
-    recentActivities: githubData.totalContributions.repositories,
-    username: githubData.username,
-    name: githubData.name,
-    avatar: githubData.avatar_url,
-    topLanguages: githubData.topLanguages
-  } : {
-    karmaScore: user.karmaScore || 0,
-    totalContributions: user.totalContributions || 0,
-    trustFactor: user.trustFactor || 0,
-    recentActivities: user.totalContributions || 0,
-    username: user.githubData?.username,
-    name: user.githubData?.name,
-    avatar: user.githubData?.avatar_url,
-    topLanguages: []
+  useEffect(() => {
+    if (user.walletAddress) {
+      fetchMoveData();
+    }
+  }, [user.walletAddress, fetchMoveData]);
+
+  const handleContributionAdded = () => {
+    // Refresh Move data after adding a contribution
+    if (user.walletAddress) {
+      fetchMoveData();
+    }
   };
+
+  // Use real data if available, otherwise fall back to user data
+  const displayData = (() => {
+    // Priority: Move data > GitHub data > user data
+    if (moveData) {
+      return {
+        karmaScore: moveData.karmaScore,
+        totalContributions: moveData.totalContributions,
+        trustFactor: moveData.isVerified ? 0.9 : 0.5,
+        recentActivities: moveData.contributions.length,
+        username: user.githubData?.username,
+        name: user.githubData?.name,
+        avatar: user.githubData?.avatar_url,
+        topLanguages: [],
+        isOnChain: true
+      };
+    } else if (githubData) {
+      return {
+        karmaScore: githubData.karmaScore,
+        totalContributions: githubData.totalContributions.commits + 
+                           githubData.totalContributions.pullRequests + 
+                           githubData.totalContributions.issues,
+        trustFactor: githubData.trustFactor,
+        recentActivities: githubData.totalContributions.repositories,
+        username: githubData.username,
+        name: githubData.name,
+        avatar: githubData.avatar_url,
+        topLanguages: githubData.topLanguages,
+        isOnChain: false
+      };
+    } else {
+      return {
+        karmaScore: user.karmaScore || 0,
+        totalContributions: user.totalContributions || 0,
+        trustFactor: user.trustFactor || 0,
+        recentActivities: user.totalContributions || 0,
+        username: user.githubData?.username,
+        name: user.githubData?.name,
+        avatar: user.githubData?.avatar_url,
+        topLanguages: [],
+        isOnChain: false
+      };
+    }
+  })();
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-accent-600';
@@ -176,6 +234,17 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
                   {isLoading ? 'Updating...' : 'Refresh'}
                 </button>
               )}
+              
+              {user.walletAddress && (
+                <button
+                  onClick={fetchMoveData}
+                  disabled={isLoadingMove}
+                  className="inline-flex items-center px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200 disabled:opacity-50"
+                >
+                  <CubeIcon className={`h-3 w-3 mr-1 ${isLoadingMove ? 'animate-spin' : ''}`} />
+                  {isLoadingMove ? 'Updating...' : 'Refresh Chain'}
+                </button>
+              )}
             </div>
             
             {/* Connection Type Badges */}
@@ -197,12 +266,22 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
                   Live Data
                 </span>
               )}
+              {moveData && (
+                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                  On-Chain Data
+                </span>
+              )}
             </div>
             
             {/* Error Display */}
             {error && (
               <div className="mt-2 text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
                 {error}
+              </div>
+            )}
+            {moveError && (
+              <div className="mt-2 text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
+                {moveError}
               </div>
             )}
           </div>
@@ -313,6 +392,69 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
         </div>
       )}
 
+      {/* Move Contract Contributions */}
+      {moveData && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-lg font-semibold text-karma-900 flex items-center">
+              <CubeIcon className="h-5 w-5 mr-2" />
+              On-Chain Contributions
+            </h4>
+            {user.walletAddress && (
+              <button
+                onClick={() => setShowAddContribution(true)}
+                className="inline-flex items-center px-3 py-1 text-sm bg-accent-600 text-white rounded-lg hover:bg-accent-700 transition-colors"
+              >
+                <PlusIcon className="h-4 w-4 mr-1" />
+                Add Contribution
+              </button>
+            )}
+          </div>
+          
+          {moveData.contributions.length > 0 ? (
+          <div className="space-y-3">
+            {moveData.contributions.slice(0, 5).map((contribution, index) => (
+              <div key={index} className="bg-white rounded-lg p-4 border border-karma-200">
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-sm font-medium text-karma-700 capitalize">
+                    {contribution.type}
+                  </span>
+                  <span className="text-xs text-karma-500">
+                    {new Date(contribution.timestamp * 1000).toLocaleDateString()}
+                  </span>
+                </div>
+                <p className="text-sm text-karma-600 mb-2">{contribution.description}</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-karma-500">
+                    Impact Score: {contribution.impactScore}/100
+                  </span>
+                  <div className="w-16 bg-karma-200 rounded-full h-2">
+                    <div 
+                      className="bg-accent-500 h-2 rounded-full" 
+                      style={{ width: `${contribution.impactScore}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            {moveData.contributions.length > 5 && (
+              <p className="text-sm text-karma-500 text-center">
+                +{moveData.contributions.length - 5} more contributions
+              </p>
+            )}
+          </div>
+          ) : (
+            <div className="text-center py-8 text-karma-500">
+              <CubeIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-sm">No on-chain contributions yet</p>
+              {user.walletAddress && (
+                <p className="text-xs mt-1">Click "Add Contribution" to get started</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Connection Suggestions */}
       {user.type !== 'combined' && (
         <div className="bg-gradient-to-r from-accent-50 to-primary-50 border border-accent-200 rounded-xl p-4">
@@ -330,6 +472,16 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
             💡 Combined profiles get higher karma scores and increased trust ratings
           </div>
         </div>
+      )}
+
+      {/* Add Contribution Modal */}
+      {user.walletAddress && (
+        <AddContributionModal
+          isOpen={showAddContribution}
+          onClose={() => setShowAddContribution(false)}
+          userAddress={user.walletAddress}
+          onContributionAdded={handleContributionAdded}
+        />
       )}
     </div>
   );

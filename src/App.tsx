@@ -9,7 +9,8 @@ import {
   ArrowDownTrayIcon,
   PlusIcon,
   CodeBracketIcon,
-  RocketLaunchIcon
+  RocketLaunchIcon,
+  CubeIcon
 } from '@heroicons/react/24/outline';
 import WelcomeScreen from './components/WelcomeScreen';
 import KarmaCard from './components/KarmaCard';
@@ -24,6 +25,7 @@ import { githubApiService } from './services/githubApiService';
 import SplashCursor from './components/SplashCursor';
 import { wagmiConfig } from './config/web3Config';
 import { useAuthStore, AuthUser } from './store/authStore';
+import { CONTRACT_ADDRESSES } from './services/moveContractService';
 import './App.css';
 
 // Production ready - debug logs removed
@@ -668,6 +670,123 @@ function AppContent() {
                 </div>
               </CollapsibleCard>
             </div>
+          </div>
+
+          {/* 7. Move Contract Status */}
+          <div className="mb-8">
+            <CollapsibleCard
+              title="🔗 Move Smart Contracts"
+              icon={<CubeIcon className="h-6 w-6 text-karma-600" />}
+              defaultExpanded={true}
+            >
+              <div className="space-y-6">
+                {/* Contract Status */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-8 w-8 bg-green-500 rounded-lg flex items-center justify-center">
+                        <CubeIcon className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-green-800">ReputationRegistry</div>
+                        <div className="text-xs text-green-600">Deployed & Active</div>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs text-green-700 font-mono">
+                      {CONTRACT_ADDRESSES.REPUTATION_REGISTRY.slice(0, 8)}...
+                    </div>
+                  </div>
+
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-8 w-8 bg-green-500 rounded-lg flex items-center justify-center">
+                        <CubeIcon className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-green-800">KarmaScorer</div>
+                        <div className="text-xs text-green-600">Deployed & Active</div>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs text-green-700 font-mono">
+                      {CONTRACT_ADDRESSES.KARMA_SCORER.slice(0, 8)}...
+                    </div>
+                  </div>
+
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-8 w-8 bg-green-500 rounded-lg flex items-center justify-center">
+                        <CubeIcon className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-green-800">AccessController</div>
+                        <div className="text-xs text-green-600">Deployed & Active</div>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs text-green-700 font-mono">
+                      {CONTRACT_ADDRESSES.ACCESS_CONTROLLER.slice(0, 8)}...
+                    </div>
+                  </div>
+                </div>
+
+                {/* Network Info */}
+                <div className="bg-karma-50 border border-karma-200 rounded-xl p-4">
+                  <h4 className="font-semibold text-karma-900 mb-3">Network Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <div className="text-karma-600">Network:</div>
+                      <div className="font-medium text-karma-900">Umi Network Devnet</div>
+                    </div>
+                    <div>
+                      <div className="text-karma-600">RPC Endpoint:</div>
+                      <div className="font-mono text-karma-900 text-xs">devnet.uminetwork.com</div>
+                    </div>
+                    <div>
+                      <div className="text-karma-600">Explorer:</div>
+                      <div className="font-medium text-karma-900">
+                        <a 
+                          href="https://devnet.explorer.uminetwork.com" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-accent-600 hover:text-accent-700"
+                        >
+                          Umi Explorer
+                        </a>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-karma-600">Status:</div>
+                      <div className="flex items-center space-x-2">
+                        <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                        <span className="text-green-700 font-medium">Connected</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contract Functions */}
+                <div className="bg-karma-50 border border-karma-200 rounded-xl p-4">
+                  <h4 className="font-semibold text-karma-900 mb-3">Available Functions</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-karma-700">Record Contribution</span>
+                      <span className="text-accent-600 font-medium">✓ Available</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-karma-700">Get Karma Score</span>
+                      <span className="text-accent-600 font-medium">✓ Available</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-karma-700">Check Access</span>
+                      <span className="text-accent-600 font-medium">✓ Available</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-karma-700">Verify User</span>
+                      <span className="text-accent-600 font-medium">✓ Available</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CollapsibleCard>
           </div>
 
           {/* 8. Future Features */}
