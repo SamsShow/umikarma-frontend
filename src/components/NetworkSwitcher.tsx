@@ -16,7 +16,7 @@ const NetworkSwitcher: React.FC = () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
-        const response = await fetch('https://devnet.moved.network', {
+        const response = await fetch('https://devnet.uminetwork.com/', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -243,9 +243,9 @@ const NetworkSwitcher: React.FC = () => {
           <p><strong>Network Details:</strong></p>
           <ul className="mt-1 space-y-1">
             <li>• Chain ID: 42069</li>
-            <li>• RPC URL: https://devnet.moved.network</li>
+                            <li>• RPC URL: https://devnet.uminetwork.com/</li>
             <li>• Currency: ETH</li>
-            <li>• Explorer: https://devnet.explorer.moved.network</li>
+                            <li>• Explorer: https://devnet.explorer.uminetwork.com</li>
           </ul>
         </div>
       </div>

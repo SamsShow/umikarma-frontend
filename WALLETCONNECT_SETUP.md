@@ -33,9 +33,9 @@ npm start
 
 The app is configured for **Umi Devnet**:
 - **Chain ID**: 42069
-- **RPC URL**: https://devnet.moved.network  
+- **RPC URL**: https://devnet.uminetwork.com/  
 - **Currency**: ETH
-- **Explorer**: https://devnet.explorer.moved.network
+- **Explorer**: https://devnet.explorer.uminetwork.com
 
 ## Getting Test ETH
 

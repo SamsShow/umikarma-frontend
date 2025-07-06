@@ -15,13 +15,13 @@ export const umiDevnet = {
   },
   rpcUrls: {
     default: {
-      http: ['https://devnet.moved.network'],
+      http: ['https://devnet.uminetwork.com/'],
     },
   },
   blockExplorers: {
     default: {
       name: 'Umi Explorer',
-      url: 'https://devnet.explorer.moved.network',
+      url: 'https://devnet.explorer.uminetwork.com',
     },
   },
   testnet: true,
@@ -40,7 +40,7 @@ export const wagmiConfig = createConfig({
     injected(),
   ],
   transports: {
-    [umiDevnet.id]: http('https://devnet.moved.network', {
+    [umiDevnet.id]: http('https://devnet.uminetwork.com/', {
       timeout: 20_000, // Increased timeout to 20 seconds
       retryCount: 1, // Allow 1 retry to handle intermittent issues
       retryDelay: 3_000, // 3 second delay between retries
@@ -59,8 +59,8 @@ export const supportedChains = [
     id: umiDevnet.id,
     name: 'Umi Devnet',
     nativeCurrency: 'ETH',
-    blockExplorers: ['https://devnet.explorer.moved.network'],
-    rpcUrl: 'https://devnet.moved.network',
+    blockExplorers: ['https://devnet.explorer.uminetwork.com'],
+    rpcUrl: 'https://devnet.uminetwork.com/',
     faucetUrl: 'https://faucet.umi.network', // Based on documentation
     status: 'primary', // Primary choice
     corsIssues: true, // Known CORS restrictions from browsers
