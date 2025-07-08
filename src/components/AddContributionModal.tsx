@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { XMarkIcon, PlusIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import { moveContractService } from '../services/moveContractService';
+import { useAccount } from 'wagmi';
+import { useAddContribution, CONTRIBUTION_TYPES } from '../services/contractService';
+import ContractError from './ContractError';
 
 interface AddContributionModalProps {
   isOpen: boolean;
@@ -15,66 +17,68 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
   userAddress,
   onContributionAdded
 }) => {
-  const [contributionType, setContributionType] = useState('github');
+  const { address } = useAccount();
+  const [contributionType, setContributionType] = useState<keyof typeof CONTRIBUTION_TYPES>('GITHUB');
   const [description, setDescription] = useState('');
   const [impactScore, setImpactScore] = useState(50);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  // Smart contract hook for adding contributions
+  const { 
+    addContribution, 
+    isPending, 
+    isConfirming, 
+    isConfirmed, 
+    error: contractError 
+  } = useAddContribution();
 
   const contributionTypes = [
-    { value: 'github', label: 'GitHub', description: 'Code contributions, PRs, issues' },
-    { value: 'dao', label: 'DAO', description: 'Governance participation, proposals' },
-    { value: 'forum', label: 'Forum', description: 'Community discussions, help' },
-    { value: 'content', label: 'Content', description: 'Documentation, tutorials' },
-    { value: 'event', label: 'Event', description: 'Conference talks, workshops' },
-    { value: 'other', label: 'Other', description: 'Miscellaneous contributions' },
-  ];
+    { value: 'GITHUB', label: 'GitHub', description: 'Code contributions, PRs, issues' },
+    { value: 'DAO', label: 'DAO', description: 'Governance participation, proposals' },
+    { value: 'FORUM', label: 'Forum', description: 'Community discussions, help' },
+  ] as const;
+
+  // Handle successful transaction confirmation
+  React.useEffect(() => {
+    if (isConfirmed) {
+      onContributionAdded();
+      onClose();
+      // Reset form
+      setDescription('');
+      setImpactScore(50);
+      setContributionType('GITHUB');
+    }
+  }, [isConfirmed, onContributionAdded, onClose]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!description.trim()) {
-      setError('Please provide a description');
+      setLocalError('Please provide a description');
       return;
     }
 
-    setIsSubmitting(true);
-    setError(null);
+    if (!address) {
+      setLocalError('Please connect your wallet first');
+      return;
+    }
+
+    setLocalError(null);
 
     try {
-      // Note: This would require a wallet client to be passed in
-      // For now, we'll just simulate the call
-      console.log('Would record contribution:', {
-        userAddress,
+      addContribution(
+        address,
         contributionType,
-        description,
-        impactScore
-      });
-      
-      // TODO: Implement actual contract call when wallet is connected
-      // const hash = await moveContractService.recordContribution(
-      //   userAddress,
-      //   contributionType,
-      //   description,
-      //   impactScore,
-      //   walletClient
-      // );
-      
-      // Simulate success
-      setTimeout(() => {
-        setIsSubmitting(false);
-        onContributionAdded();
-        onClose();
-        // Reset form
-        setDescription('');
-        setImpactScore(50);
-      }, 1000);
-      
+        impactScore,
+        description.trim()
+      );
     } catch (err) {
-      setError('Failed to record contribution. Please try again.');
-      setIsSubmitting(false);
+      setLocalError('Failed to submit transaction. Please try again.');
     }
   };
+
+  const isSubmitting = isPending || isConfirming;
+  const error = localError || contractError;
 
   if (!isOpen) return null;
 
@@ -175,9 +179,19 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
           </div>
 
           {/* Error Display */}
-          {error && (
+          <ContractError 
+            error={contractError} 
+            isContractDeployed={true} 
+            onRetry={() => {
+              if (address && description.trim()) {
+                addContribution(address, contributionType, impactScore, description.trim());
+              }
+            }} 
+          />
+          
+          {localError && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <div className="text-sm text-red-700">{error}</div>
+              <div className="text-sm text-red-700">{localError}</div>
             </div>
           )}
 
@@ -195,15 +209,20 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
               disabled={isSubmitting || !description.trim()}
               className="flex-1 px-4 py-2 bg-accent-600 text-white rounded-lg hover:bg-accent-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
             >
-              {isSubmitting ? (
+              {isPending ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Recording...
+                  Signing...
+                </>
+              ) : isConfirming ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Confirming...
                 </>
               ) : (
                 <>
                   <PlusIcon className="h-4 w-4 mr-2" />
-                  Record Contribution
+                  Add Contribution
                 </>
               )}
             </button>

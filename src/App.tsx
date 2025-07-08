@@ -9,8 +9,7 @@ import {
   ArrowDownTrayIcon,
   PlusIcon,
   CodeBracketIcon,
-  RocketLaunchIcon,
-  CubeIcon
+  RocketLaunchIcon
 } from '@heroicons/react/24/outline';
 import WelcomeScreen from './components/WelcomeScreen';
 import KarmaCard from './components/KarmaCard';
@@ -20,12 +19,13 @@ import { GitHubAnalysisDashboard } from './components/GitHubAnalysisDashboard';
 import MockContributions from './components/MockContributions';
 import CollapsibleCard from './components/CollapsibleCard';
 import ConnectionStatus from './components/ConnectionStatus';
+import ContractStatus from './components/ContractStatus';
+import DashboardView from './components/DashboardView';
 import Footer from './components/Footer';
 import { githubApiService } from './services/githubApiService';
 import SplashCursor from './components/SplashCursor';
 import { wagmiConfig } from './config/web3Config';
 import { useAuthStore, AuthUser } from './store/authStore';
-import { CONTRACT_ADDRESSES } from './services/moveContractService';
 import './App.css';
 
 // Production ready - debug logs removed
@@ -44,7 +44,7 @@ createWeb3Modal({
 });
 
 interface ContributionData {
-  type: 'github' | 'dao' | 'forum';
+  type: 'github' | 'dao' | 'forum' | 'identity';
   title: string;
   description: string;
   impact: number;
@@ -113,7 +113,7 @@ function AppContent() {
   const { isConnected } = useAccount();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'github-analysis'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'comprehensive' | 'github-analysis'>('comprehensive');
   const [realTimeKarmaScore, setRealTimeKarmaScore] = useState<number | null>(null);
 
   // Fetch real-time karma score when GitHub user is available
@@ -315,6 +315,16 @@ function AppContent() {
               {/* Navigation Tabs */}
               <div className="flex space-x-1 bg-karma-100 p-1 rounded-lg">
                 <button
+                  onClick={() => setCurrentView('comprehensive')}
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    currentView === 'comprehensive'
+                      ? 'bg-white text-karma-900 shadow-sm'
+                      : 'text-karma-600 hover:text-karma-900'
+                  }`}
+                >
+                  Dashboard
+                </button>
+                <button
                   onClick={() => setCurrentView('dashboard')}
                   className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                     currentView === 'dashboard'
@@ -322,7 +332,7 @@ function AppContent() {
                       : 'text-karma-600 hover:text-karma-900'
                   }`}
                 >
-                  Dashboard
+                  Simple View
                 </button>
                 <button
                   onClick={() => setCurrentView('github-analysis')}
@@ -367,6 +377,11 @@ function AppContent() {
       {currentView === 'github-analysis' ? (
         <GitHubAnalysisDashboard 
           initialUsername={user.githubData?.username}
+        />
+      ) : currentView === 'comprehensive' ? (
+        <DashboardView 
+          user={user}
+          showMockData={true}
         />
       ) : (
         <main className="container-custom py-8">
@@ -425,7 +440,12 @@ function AppContent() {
               />
             </div>
 
-          {/* 2. GitHub Connection Status */}
+          {/* 2. Smart Contract Status */}
+          <div className="mb-8">
+            <ContractStatus />
+          </div>
+
+          {/* 3. GitHub Connection Status */}
           {user.type !== 'github' && (
             <div className="mb-8">
               <CollapsibleCard
@@ -450,7 +470,7 @@ function AppContent() {
             </div>
           )}
 
-          {/* 3. Real GitHub Profile Data - For GitHub users only */}
+          {/* 4. Real GitHub Profile Data - For GitHub users only */}
           {user.type === 'github' && user.githubData && (
             <div className="mb-8">
               <CollapsibleCard
@@ -478,7 +498,7 @@ function AppContent() {
             </div>
           )}
 
-          {/* 4. Contributions Row - Demo & Real Side by Side */}
+          {/* 5. Contributions Row - Demo & Real Side by Side */}
           <div className="mb-8 grid grid-cols-1 xl:grid-cols-2 gap-8">
             {/* Demo Contributions */}
             <div className="xl:min-h-0">
@@ -497,7 +517,7 @@ function AppContent() {
             </div>
           </div>
 
-          {/* 5. DAO & Developer Row - Side by Side */}
+          {/* 6. DAO & Developer Row - Side by Side */}
           <div className="mb-8 grid grid-cols-1 xl:grid-cols-2 gap-8">
             {/* DAO Access Control */}
             <div className="xl:min-h-0">
@@ -670,123 +690,6 @@ function AppContent() {
                 </div>
               </CollapsibleCard>
             </div>
-          </div>
-
-          {/* 7. Move Contract Status */}
-          <div className="mb-8">
-            <CollapsibleCard
-              title="🔗 Move Smart Contracts"
-              icon={<CubeIcon className="h-6 w-6 text-karma-600" />}
-              defaultExpanded={true}
-            >
-              <div className="space-y-6">
-                {/* Contract Status */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="h-8 w-8 bg-green-500 rounded-lg flex items-center justify-center">
-                        <CubeIcon className="h-4 w-4 text-white" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-green-800">ReputationRegistry</div>
-                        <div className="text-xs text-green-600">Deployed & Active</div>
-                      </div>
-                    </div>
-                    <div className="mt-2 text-xs text-green-700 font-mono">
-                      {CONTRACT_ADDRESSES.REPUTATION_REGISTRY.slice(0, 8)}...
-                    </div>
-                  </div>
-
-                  <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="h-8 w-8 bg-green-500 rounded-lg flex items-center justify-center">
-                        <CubeIcon className="h-4 w-4 text-white" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-green-800">KarmaScorer</div>
-                        <div className="text-xs text-green-600">Deployed & Active</div>
-                      </div>
-                    </div>
-                    <div className="mt-2 text-xs text-green-700 font-mono">
-                      {CONTRACT_ADDRESSES.KARMA_SCORER.slice(0, 8)}...
-                    </div>
-                  </div>
-
-                  <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="h-8 w-8 bg-green-500 rounded-lg flex items-center justify-center">
-                        <CubeIcon className="h-4 w-4 text-white" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-green-800">AccessController</div>
-                        <div className="text-xs text-green-600">Deployed & Active</div>
-                      </div>
-                    </div>
-                    <div className="mt-2 text-xs text-green-700 font-mono">
-                      {CONTRACT_ADDRESSES.ACCESS_CONTROLLER.slice(0, 8)}...
-                    </div>
-                  </div>
-                </div>
-
-                {/* Network Info */}
-                <div className="bg-karma-50 border border-karma-200 rounded-xl p-4">
-                  <h4 className="font-semibold text-karma-900 mb-3">Network Information</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <div className="text-karma-600">Network:</div>
-                      <div className="font-medium text-karma-900">Umi Network Devnet</div>
-                    </div>
-                    <div>
-                      <div className="text-karma-600">RPC Endpoint:</div>
-                      <div className="font-mono text-karma-900 text-xs">devnet.uminetwork.com</div>
-                    </div>
-                    <div>
-                      <div className="text-karma-600">Explorer:</div>
-                      <div className="font-medium text-karma-900">
-                        <a 
-                          href="https://devnet.explorer.uminetwork.com" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-accent-600 hover:text-accent-700"
-                        >
-                          Umi Explorer
-                        </a>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-karma-600">Status:</div>
-                      <div className="flex items-center space-x-2">
-                        <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                        <span className="text-green-700 font-medium">Connected</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Contract Functions */}
-                <div className="bg-karma-50 border border-karma-200 rounded-xl p-4">
-                  <h4 className="font-semibold text-karma-900 mb-3">Available Functions</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between items-center">
-                      <span className="text-karma-700">Record Contribution</span>
-                      <span className="text-accent-600 font-medium">✓ Available</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-karma-700">Get Karma Score</span>
-                      <span className="text-accent-600 font-medium">✓ Available</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-karma-700">Check Access</span>
-                      <span className="text-accent-600 font-medium">✓ Available</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-karma-700">Verify User</span>
-                      <span className="text-accent-600 font-medium">✓ Available</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CollapsibleCard>
           </div>
 
           {/* 8. Future Features */}

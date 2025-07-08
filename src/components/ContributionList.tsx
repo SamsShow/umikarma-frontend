@@ -9,13 +9,15 @@ import {
   LinkIcon,
   ExclamationCircleIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  IdentificationIcon
 } from '@heroicons/react/24/outline';
 import { githubApiService, ContributionActivity } from '../services/githubApiService';
+import MockDataService, { MockContribution } from '../services/mockData';
 import CollapsibleCard from './CollapsibleCard';
 
 interface ContributionData {
-  type: 'github' | 'dao' | 'forum';
+  type: 'github' | 'dao' | 'forum' | 'identity';
   title: string;
   description: string;
   impact: number;
@@ -29,6 +31,7 @@ interface ContributionListProps {
   showRealTimeData?: boolean;
   isCollapsible?: boolean;
   defaultExpanded?: boolean;
+  useMockData?: boolean;
 }
 
 const PaginationControls: React.FC<{
@@ -71,7 +74,8 @@ const ContributionList: React.FC<ContributionListProps> = ({
   githubUsername,
   showRealTimeData = false,
   isCollapsible = true,
-  defaultExpanded = true
+  defaultExpanded = true,
+  useMockData = false
 }) => {
   const [githubActivities, setGithubActivities] = useState<ContributionActivity[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -123,15 +127,34 @@ const ContributionList: React.FC<ContributionListProps> = ({
     aiSummary: activity.aiSummary || 'No AI analysis available for this contribution.'
   });
 
-  // Combine GitHub activities with existing contributions
-  const allContributions = [
-    ...githubActivities.map(convertGitHubActivity),
-    ...contributions
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  // Convert mock contributions to ContributionData format
+  const convertMockContribution = (mockContrib: MockContribution): ContributionData => ({
+    type: mockContrib.type,
+    title: mockContrib.title,
+    description: mockContrib.description,
+    impact: mockContrib.impact,
+    date: mockContrib.date,
+    aiSummary: mockContrib.aiSummary
+  });
 
-  const displayContributions = showRealTimeData && githubActivities.length > 0 
-    ? allContributions 
-    : contributions;
+  // Get contributions based on data source priority
+  const getDisplayContributions = () => {
+    if (useMockData || (contributions.length === 0 && githubActivities.length === 0)) {
+      // Use mock data if explicitly requested or as fallback
+      return MockDataService.getUserContributions().map(convertMockContribution);
+    } else if (showRealTimeData && githubActivities.length > 0) {
+      // Combine GitHub activities with existing contributions
+      return [
+        ...githubActivities.map(convertGitHubActivity),
+        ...contributions
+      ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    } else {
+      // Use provided contributions
+      return contributions;
+    }
+  };
+
+  const displayContributions = getDisplayContributions();
 
   // Pagination logic
   const totalPages = Math.ceil(displayContributions.length / itemsPerPage);
@@ -159,6 +182,8 @@ const ContributionList: React.FC<ContributionListProps> = ({
         return <ChartBarIcon className="h-5 w-5" />;
       case 'forum':
         return <ChatBubbleLeftRightIcon className="h-5 w-5" />;
+      case 'identity':
+        return <IdentificationIcon className="h-5 w-5" />;
       default:
         return <UserIcon className="h-5 w-5" />;
     }
@@ -168,7 +193,8 @@ const ContributionList: React.FC<ContributionListProps> = ({
     const badges = {
       github: 'bg-karma-100 text-karma-800 border-karma-200',
       dao: 'bg-primary-100 text-primary-800 border-primary-200',
-      forum: 'bg-purple-100 text-purple-800 border-purple-200'
+      forum: 'bg-purple-100 text-purple-800 border-purple-200',
+      identity: 'bg-indigo-100 text-indigo-800 border-indigo-200'
     };
     return badges[type as keyof typeof badges] || 'bg-karma-100 text-karma-800 border-karma-200';
   };

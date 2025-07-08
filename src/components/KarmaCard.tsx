@@ -2,7 +2,13 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { UserIcon, TrophyIcon, ShieldCheckIcon, CalendarIcon, ArrowPathIcon, CodeBracketIcon, WalletIcon, CubeIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { githubApiService, GitHubUserSummary } from '../services/githubApiService';
 import { AuthUser } from '../store/authStore';
-import { moveContractService, UserProfile } from '../services/moveContractService';
+import { 
+  useCurrentUserData, 
+  formatKarmaScore, 
+  formatTrustFactor,
+  getAccessLevelName 
+} from '../services/contractService';
+import MockDataService from '../services/mockData';
 import AddContributionModal from './AddContributionModal';
 
 interface KarmaCardProps {
@@ -15,12 +21,20 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
   showRealTimeData = false
 }) => {
   const [githubData, setGithubData] = useState<GitHubUserSummary | null>(null);
-  const [moveData, setMoveData] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingMove, setIsLoadingMove] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [moveError, setMoveError] = useState<string | null>(null);
   const [showAddContribution, setShowAddContribution] = useState(false);
+
+  // Use smart contract hooks for real-time on-chain data
+  const { 
+    profile: contractProfile, 
+    stats: contractStats, 
+    contributions: contractContributions,
+    accessLevel,
+    accessLevelName,
+    isLoading: isLoadingContract,
+    error: contractError 
+  } = useCurrentUserData();
 
   // Fetch real GitHub data if enabled and GitHub handle is provided
   const fetchGitHubData = useCallback(async () => {
@@ -44,23 +58,11 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
     }
   }, [user.githubData?.username]);
 
-  // Fetch Move contract data if wallet is connected
-  const fetchMoveData = useCallback(async () => {
-    if (!user.walletAddress) return;
-    
-    setIsLoadingMove(true);
-    setMoveError(null);
-    
-    try {
-      const profile = await moveContractService.getUserProfile(user.walletAddress);
-      setMoveData(profile);
-    } catch (err) {
-      setMoveError('Failed to fetch on-chain data');
-      console.error('Error fetching Move data:', err);
-    } finally {
-      setIsLoadingMove(false);
-    }
-  }, [user.walletAddress]);
+  // Handle contribution addition success
+  const handleContributionAdded = () => {
+    // The contract hooks will automatically refetch data
+    console.log('Contribution added successfully');
+  };
 
   useEffect(() => {
     if (showRealTimeData && user.githubData?.username) {
@@ -68,33 +70,24 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
     }
   }, [showRealTimeData, user.githubData?.username, fetchGitHubData]);
 
-  useEffect(() => {
-    if (user.walletAddress) {
-      fetchMoveData();
-    }
-  }, [user.walletAddress, fetchMoveData]);
-
-  const handleContributionAdded = () => {
-    // Refresh Move data after adding a contribution
-    if (user.walletAddress) {
-      fetchMoveData();
-    }
-  };
-
-  // Use real data if available, otherwise fall back to user data
+  // Use real data if available, otherwise fall back to mock data
   const displayData = (() => {
-    // Priority: Move data > GitHub data > user data
-    if (moveData) {
+    // Priority: Smart contract data > GitHub data > mock data > user data
+    if (contractProfile) {
       return {
-        karmaScore: moveData.karmaScore,
-        totalContributions: moveData.totalContributions,
-        trustFactor: moveData.isVerified ? 0.9 : 0.5,
-        recentActivities: moveData.contributions.length,
-        username: user.githubData?.username,
+        karmaScore: contractProfile.karmaScore,
+        totalContributions: contractProfile.totalContributions,
+        trustFactor: contractProfile.trustFactor,
+        recentActivities: contractContributions?.length || 0,
+        username: contractProfile.githubHandle || user.githubData?.username,
         name: user.githubData?.name,
         avatar: user.githubData?.avatar_url,
         topLanguages: [],
-        isOnChain: true
+        isOnChain: true,
+        isVerified: contractProfile.isVerified,
+        registrationDate: contractProfile.registrationDate,
+        lastActivity: contractProfile.lastActivity,
+        accessLevel: accessLevelName
       };
     } else if (githubData) {
       return {
@@ -108,19 +101,28 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
         name: githubData.name,
         avatar: githubData.avatar_url,
         topLanguages: githubData.topLanguages,
-        isOnChain: false
+        isOnChain: false,
+        isVerified: false
       };
     } else {
+      // Use mock data as fallback to demonstrate full functionality
+      const mockUser = MockDataService.getCurrentUser();
       return {
-        karmaScore: user.karmaScore || 0,
-        totalContributions: user.totalContributions || 0,
-        trustFactor: user.trustFactor || 0,
-        recentActivities: user.totalContributions || 0,
-        username: user.githubData?.username,
-        name: user.githubData?.name,
+        karmaScore: mockUser.karmaScore,
+        totalContributions: mockUser.totalContributions,
+        trustFactor: mockUser.trustFactor,
+        recentActivities: MockDataService.getUserContributions().length,
+        username: mockUser.githubHandle,
+        name: user.githubData?.name || 'Alice Developer',
         avatar: user.githubData?.avatar_url,
-        topLanguages: [],
-        isOnChain: false
+        topLanguages: ['TypeScript', 'Solidity', 'Python'],
+        isOnChain: false,
+        isVerified: mockUser.verificationStatus,
+        registrationDate: mockUser.joinDate,
+        accessLevel: mockUser.accessLevel === 4 ? 'Elite' : 
+                    mockUser.accessLevel === 3 ? 'Trusted' :
+                    mockUser.accessLevel === 2 ? 'Contributor' : 'Basic',
+        isMockData: true
       };
     }
   })();
@@ -237,12 +239,12 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
               
               {user.walletAddress && (
                 <button
-                  onClick={fetchMoveData}
-                  disabled={isLoadingMove}
+                  onClick={() => window.location.reload()}
+                  disabled={isLoadingContract}
                   className="inline-flex items-center px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200 disabled:opacity-50"
                 >
-                  <CubeIcon className={`h-3 w-3 mr-1 ${isLoadingMove ? 'animate-spin' : ''}`} />
-                  {isLoadingMove ? 'Updating...' : 'Refresh Chain'}
+                  <CubeIcon className={`h-3 w-3 mr-1 ${isLoadingContract ? 'animate-spin' : ''}`} />
+                  {isLoadingContract ? 'Updating...' : 'Refresh Chain'}
                 </button>
               )}
             </div>
@@ -266,7 +268,7 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
                   Live Data
                 </span>
               )}
-              {moveData && (
+              {contractProfile && (
                 <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
                   On-Chain Data
                 </span>
@@ -279,9 +281,9 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
                 {error}
               </div>
             )}
-            {moveError && (
+            {contractError && (
               <div className="mt-2 text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
-                {moveError}
+                {contractError.message}
               </div>
             )}
           </div>
@@ -392,8 +394,8 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
         </div>
       )}
 
-      {/* Move Contract Contributions */}
-      {moveData && (
+      {/* Smart Contract Contributions */}
+      {contractContributions && contractContributions.length > 0 && (
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-lg font-semibold text-karma-900 flex items-center">
@@ -411,16 +413,16 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
             )}
           </div>
           
-          {moveData.contributions.length > 0 ? (
           <div className="space-y-3">
-            {moveData.contributions.slice(0, 5).map((contribution, index) => (
+            {contractContributions.slice(0, 5).map((contribution, index) => (
               <div key={index} className="bg-white rounded-lg p-4 border border-karma-200">
                 <div className="flex justify-between items-start mb-2">
                   <span className="text-sm font-medium text-karma-700 capitalize">
-                    {contribution.type}
+                    {contribution.contributionType === 0 ? 'GitHub' : 
+                     contribution.contributionType === 1 ? 'DAO' : 'Forum'}
                   </span>
                   <span className="text-xs text-karma-500">
-                    {new Date(contribution.timestamp * 1000).toLocaleDateString()}
+                    {contribution.timestamp.toLocaleDateString()}
                   </span>
                 </div>
                 <p className="text-sm text-karma-600 mb-2">{contribution.description}</p>
@@ -437,21 +439,12 @@ const KarmaCard: React.FC<KarmaCardProps> = ({
                 </div>
               </div>
             ))}
-            {moveData.contributions.length > 5 && (
+            {contractContributions.length > 5 && (
               <p className="text-sm text-karma-500 text-center">
-                +{moveData.contributions.length - 5} more contributions
+                +{contractContributions.length - 5} more contributions
               </p>
             )}
           </div>
-          ) : (
-            <div className="text-center py-8 text-karma-500">
-              <CubeIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">No on-chain contributions yet</p>
-              {user.walletAddress && (
-                <p className="text-xs mt-1">Click "Add Contribution" to get started</p>
-              )}
-            </div>
-          )}
         </div>
       )}
 
