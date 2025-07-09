@@ -106,3 +106,70 @@ export const detectNetworkStatus = async (chainId: number): Promise<'online' | '
     return 'offline';
   }
 }; 
+
+export const networks = {
+  UMI_NETWORK: {
+    chainId: '0x539', // 1337 in hex
+    chainName: 'Umi Network EVM',
+    rpcUrls: ['https://ethereum.uminetwork.com/'],
+    nativeCurrency: {
+      name: 'Ether',
+      symbol: 'ETH',
+      decimals: 18,
+    },
+    blockExplorerUrls: ['https://explorer.uminetwork.com/'],
+  },
+  POLYGON_AMOY: {
+    chainId: '0x13882', // 80002 in hex
+    chainName: 'Polygon Amoy Testnet',
+    rpcUrls: ['https://rpc-amoy.polygon.technology/'],
+    nativeCurrency: {
+      name: 'MATIC',
+      symbol: 'MATIC',
+      decimals: 18,
+    },
+    blockExplorerUrls: ['https://amoy.polygonscan.com/'],
+  },
+};
+
+// Contract addresses by network
+export const contractAddresses = {
+  UMI_NETWORK: {
+    ReputationRegistry: '0xb27dcfA63e6A6bb8000212F82a51eb93C8F541dF',
+    KarmaScorer: '0x782b79661679ADCC90af2476B14DE105B6186562',
+    // AccessController not deployed due to gas issues
+  },
+  POLYGON_AMOY: {
+    // Fallback network for testing
+    ReputationRegistry: '',
+    KarmaScorer: '',
+    AccessController: '',
+  },
+};
+
+// Default network configuration
+export const defaultNetwork = networks.UMI_NETWORK;
+export const defaultChainId = '0x539'; // Umi Network EVM
+
+// Helper functions
+export const getNetworkByChainId = (chainId: string) => {
+  const networkEntry = Object.entries(networks).find(
+    ([, network]) => network.chainId === chainId
+  );
+  return networkEntry ? networkEntry[1] : null;
+};
+
+export const getContractAddresses = (chainId: string) => {
+  switch (chainId) {
+    case '0x539': // Umi Network EVM
+      return contractAddresses.UMI_NETWORK;
+    case '0x13882': // Polygon Amoy
+      return contractAddresses.POLYGON_AMOY;
+    default:
+      return contractAddresses.UMI_NETWORK; // Default to Umi Network
+  }
+};
+
+export const isValidNetwork = (chainId: string): boolean => {
+  return Object.values(networks).some(network => network.chainId === chainId);
+}; 

@@ -143,11 +143,11 @@ const ContributionList: React.FC<ContributionListProps> = ({
       // Use mock data if explicitly requested or as fallback
       return MockDataService.getUserContributions().map(convertMockContribution);
     } else if (showRealTimeData && githubActivities.length > 0) {
-      // Combine GitHub activities with existing contributions
+  // Combine GitHub activities with existing contributions
       return [
-        ...githubActivities.map(convertGitHubActivity),
-        ...contributions
-      ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    ...githubActivities.map(convertGitHubActivity),
+    ...contributions
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     } else {
       // Use provided contributions
       return contributions;
